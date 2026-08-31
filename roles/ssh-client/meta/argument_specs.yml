@@ -1,0 +1,30 @@
+---
+argument_specs:
+  main:
+    short_description: Manage OpenSSH client configuration fragments
+    options:
+      ssh_client_config_dir:
+        type: path
+      ssh_client_config_vendor_file:
+        type: path
+      ssh_client_config_require_include:
+        type: bool
+      ssh_client_config_fragment_suffix:
+        type: str
+      ssh_client_config_manifest_file:
+        type: str
+      ssh_client_config_manage_removed_fragments:
+        type: bool
+      ssh_client_config_validate:
+        type: bool
+      ssh_client_config_validation_host:
+        type: str
+      ssh_client_config_binary:
+        type: str
+      ssh_client_config_warn_crypto_policy:
+        type: bool
+      ssh_client_config_list_modes:
+        type: dict
+      ssh_client_config_fragments:
+        type: dict
+        description: Mapping of safe fragment names to fragment definitions.

@@ -1,0 +1,9 @@
+---
+- name: Validate role input
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Prepare SSH client policy management
+  ansible.builtin.import_tasks: prepare.yml
+
+- name: Manage SSH client policy fragments
+  ansible.builtin.import_tasks: manage.yml

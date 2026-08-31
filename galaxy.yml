@@ -1,0 +1,26 @@
+namespace: peedy2495
+name: syshardening
+version: 1.0.0
+readme: README.md
+authors:
+  - "Peedy2495"
+license:
+  - MIT
+license_file: LICENSE
+tags:
+  - linux
+  - security
+  - hardening
+  - system
+repository: https://github.com/peedy2495/ansible-collection-syshardening
+homepage: https://github.com/peedy2495/ansible-collection-syshardening
+issues: https://github.com/peedy2495/ansible-collection-syshardening/issues
+description: Ansible collection for hardening Linux and related IT systems.
+documentation: https://github.com/peedy2495/ansible-collection-syshardening
+build_ignore:
+  - ".git"
+  - ".github"
+  - "*.tar.gz"
+  - ".DS_Store"
+  - "*.swp"
+  - "*.retry"

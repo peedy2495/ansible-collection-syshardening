@@ -1,0 +1,69 @@
+---
+- name: Check the system-wide SSH client configuration
+  ansible.builtin.stat:
+    path: "{{ ssh_client_config_vendor_file }}"
+  register: ssh_client_config_main_stat
+
+- name: Require the system-wide SSH client configuration
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_main_stat.stat.exists
+      - ssh_client_config_main_stat.stat.isreg
+    fail_msg: >-
+      {{ ssh_client_config_vendor_file }} does not exist. Install the OpenSSH
+      client package before using this role.
+
+- name: Read the system-wide SSH client configuration
+  ansible.builtin.slurp:
+    path: "{{ ssh_client_config_vendor_file }}"
+  register: ssh_client_config_main_content
+  when: ssh_client_config_require_include
+
+- name: Verify that the fragment directory is included
+  ansible.builtin.assert:
+    that:
+      - >-
+        (ssh_client_config_main_content.content | b64decode) is
+        regex('(?im)^\s*Include\s+[^\n]*' ~
+              (ssh_client_config_dir | regex_escape) ~
+              '/\*' ~ (ssh_client_config_fragment_suffix | regex_escape) ~
+              '(?:\s|$)')
+    fail_msg: >-
+      {{ ssh_client_config_vendor_file }} does not include
+      {{ ssh_client_config_dir }}/*{{ ssh_client_config_fragment_suffix }}.
+      This role intentionally does not modify the vendor-owned main file. Set
+      ssh_client_config_require_include=false only if inclusion is provided by
+      another mechanism.
+  when: ssh_client_config_require_include
+
+- name: Check the OpenSSH client used for validation
+  ansible.builtin.command:
+    argv:
+      - "{{ ssh_client_config_binary }}"
+      - -V
+  changed_when: false
+  when: ssh_client_config_validate
+
+- name: Create the SSH client fragment directory
+  ansible.builtin.file:
+    path: "{{ ssh_client_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Detect a system-wide RHEL-compatible crypto policy
+  ansible.builtin.stat:
+    path: /etc/crypto-policies/config
+  register: ssh_client_config_crypto_policy
+
+- name: Warn about the system-wide crypto policy
+  ansible.builtin.debug:
+    msg: >-
+      A system-wide crypto policy is active. It can restrict the algorithms
+      available to OpenSSH independently of these client fragments. This role
+      validates the effective client syntax but does not change or bypass that
+      policy.
+  when:
+    - ssh_client_config_warn_crypto_policy
+    - ssh_client_config_crypto_policy.stat.exists

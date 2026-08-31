@@ -1,0 +1,17 @@
+# Ansible
+.ansible/
+*.retry
+*.log
+*.bak
+*.orig
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Editor
+.vscode/
+.idea/
+
+# Build
+*.tar.gz

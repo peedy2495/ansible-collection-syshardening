@@ -1,0 +1,34 @@
+---
+- name: Validate host block type
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_validation_block is mapping
+    fail_msg: >-
+      A block in fragment '{{ ssh_client_config_validation_fragment_name }}'
+      must be a mapping containing host and options.
+
+- name: Validate host block structure
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_validation_block.host is defined
+      - ssh_client_config_validation_block.host is string
+      - ssh_client_config_validation_block.host | length > 0
+      - "'\n' not in ssh_client_config_validation_block.host"
+      - "'\r' not in ssh_client_config_validation_block.host"
+      - ssh_client_config_validation_block.options is defined
+      - ssh_client_config_validation_block.options is mapping
+      - ssh_client_config_validation_block.options | length > 0
+      - ssh_client_config_validation_block.keys() | difference(['host', 'options']) | length == 0
+    fail_msg: >-
+      Fragment '{{ ssh_client_config_validation_fragment_name }}' has an invalid
+      host block. A block accepts only a non-empty, single-line host string and
+      a non-empty options mapping.
+
+- name: Validate options in host block
+  ansible.builtin.include_tasks: validate_option.yml
+  loop: "{{ ssh_client_config_validation_block.options | dict2items }}"
+  loop_control:
+    loop_var: ssh_client_config_option_entry
+    label: >-
+      {{ ssh_client_config_validation_fragment_name }}:{{
+         ssh_client_config_option_entry.key }}

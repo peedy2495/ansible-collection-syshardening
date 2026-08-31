@@ -1,0 +1,170 @@
+---
+- name: Initialize active fragment metadata
+  ansible.builtin.set_fact:
+    ssh_client_config_active_fragments: []
+
+- name: Build active fragment metadata
+  ansible.builtin.set_fact:
+    ssh_client_config_active_fragments: >-
+      {{ (ssh_client_config_active_fragments | default([])) +
+         [item | combine({'filename': ('%02d' | format(item.value.priority)) ~
+          '-' ~ item.key ~ ssh_client_config_fragment_suffix})] }}
+  loop: >-
+    {{ ssh_client_config_fragments | dict2items |
+       selectattr('value.enabled', 'equalto', true) | list }}
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Inspect active fragment destinations
+  ansible.builtin.stat:
+    path: "{{ ssh_client_config_dir }}/{{ item.filename }}"
+  loop: "{{ ssh_client_config_active_fragments }}"
+  loop_control:
+    label: "{{ item.filename }}"
+  register: ssh_client_config_destination_stats
+
+- name: Read existing active fragment destinations
+  ansible.builtin.slurp:
+    path: "{{ item.stat.path }}"
+  loop: >-
+    {{ ssh_client_config_destination_stats.results |
+       selectattr('stat.exists') | list }}
+  loop_control:
+    label: "{{ item.stat.path }}"
+  register: ssh_client_config_existing_destinations
+
+- name: Refuse to overwrite files not owned by this role
+  ansible.builtin.assert:
+    that:
+      - >-
+        (item.content | b64decode).startswith(
+          '# Managed by Ansible collection role peedy2495.syshardening.ssh-client\n')
+    fail_msg: >-
+      Refusing to overwrite {{ item.source }} because it does not carry this
+      role's ownership header. Choose another fragment name/priority or migrate
+      the file explicitly.
+  loop: "{{ ssh_client_config_existing_destinations.results | default([]) }}"
+  loop_control:
+    label: "{{ item.source }}"
+
+- name: Inspect the previous ownership manifest
+  ansible.builtin.stat:
+    path: "{{ ssh_client_config_dir }}/{{ ssh_client_config_manifest_file }}"
+  register: ssh_client_config_previous_manifest_stat
+
+- name: Read the previous ownership manifest
+  ansible.builtin.slurp:
+    path: "{{ ssh_client_config_dir }}/{{ ssh_client_config_manifest_file }}"
+  register: ssh_client_config_previous_manifest
+  when: ssh_client_config_previous_manifest_stat.stat.exists
+
+- name: Refuse to overwrite a foreign ownership manifest
+  ansible.builtin.assert:
+    that:
+      - >-
+        (ssh_client_config_previous_manifest.content | b64decode).startswith(
+          '# Managed by Ansible collection role peedy2495.syshardening.ssh-client\n')
+    fail_msg: >-
+      Refusing to overwrite the existing manifest at
+      {{ ssh_client_config_dir }}/{{ ssh_client_config_manifest_file }} because
+      it does not carry this role's ownership header.
+  when: ssh_client_config_previous_manifest_stat.stat.exists
+
+- name: Derive stale role-owned fragment names
+  ansible.builtin.set_fact:
+    ssh_client_config_stale_fragments: >-
+      {{ ((ssh_client_config_previous_manifest.content | default('') | b64decode).
+          splitlines() |
+          select('match', '^[0-9]{2}-[a-z0-9][a-z0-9_-]*' ~
+                 (ssh_client_config_fragment_suffix | regex_escape) ~ '$') |
+          list) |
+         difference(ssh_client_config_active_fragments |
+                    map(attribute='filename') | list) }}
+
+- name: Install active SSH client policy fragments
+  ansible.builtin.template:
+    src: fragment.conf.j2
+    dest: "{{ ssh_client_config_dir }}/{{ item.filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+    validate: >-
+      {{ ssh_client_config_binary }} -G -F %s
+      {{ ssh_client_config_validation_host }}
+  vars:
+    ssh_client_config_fragment: "{{ item }}"
+  loop: "{{ ssh_client_config_active_fragments }}"
+  loop_control:
+    label: "{{ item.filename }}"
+  when: ssh_client_config_validate
+
+- name: Install active SSH client policy fragments without validation
+  ansible.builtin.template:
+    src: fragment.conf.j2
+    dest: "{{ ssh_client_config_dir }}/{{ item.filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    ssh_client_config_fragment: "{{ item }}"
+  loop: "{{ ssh_client_config_active_fragments }}"
+  loop_control:
+    label: "{{ item.filename }}"
+  when: not ssh_client_config_validate
+
+- name: Inspect stale fragment destinations
+  ansible.builtin.stat:
+    path: "{{ ssh_client_config_dir }}/{{ item }}"
+  loop: "{{ ssh_client_config_stale_fragments }}"
+  register: ssh_client_config_stale_destination_stats
+  when: ssh_client_config_manage_removed_fragments
+
+- name: Read existing stale fragment destinations
+  ansible.builtin.slurp:
+    path: "{{ item.stat.path }}"
+  loop: >-
+    {{ ssh_client_config_stale_destination_stats.results | default([]) |
+       selectattr('stat.exists', 'defined') |
+       selectattr('stat.exists') | list }}
+  loop_control:
+    label: "{{ item.stat.path }}"
+  register: ssh_client_config_existing_stale_destinations
+  when: ssh_client_config_manage_removed_fragments
+
+- name: Refuse to remove stale files no longer owned by this role
+  ansible.builtin.assert:
+    that:
+      - >-
+        (item.content | b64decode).startswith(
+          '# Managed by Ansible role peedy2495.ssh_client_config\n')
+    fail_msg: >-
+      Refusing to remove {{ item.source }} because it no longer carries this
+      role's ownership header.
+  loop: >-
+    {{ ssh_client_config_existing_stale_destinations.results | default([]) |
+       selectattr('content', 'defined') | list }}
+  loop_control:
+    label: "{{ item.source }}"
+  when: ssh_client_config_manage_removed_fragments
+
+- name: Remove stale role-owned fragments
+  ansible.builtin.file:
+    path: "{{ ssh_client_config_dir }}/{{ item }}"
+    state: absent
+  loop: "{{ ssh_client_config_stale_fragments }}"
+  when: ssh_client_config_manage_removed_fragments
+
+- name: Build the retained ownership manifest
+  ansible.builtin.set_fact:
+    ssh_client_config_manifest_fragments: >-
+      {{ (ssh_client_config_active_fragments | map(attribute='filename') | list) +
+         ((ssh_client_config_stale_fragments
+           if not ssh_client_config_manage_removed_fragments else [])) }}
+
+- name: Write the ownership manifest
+  ansible.builtin.template:
+    src: manifest.j2
+    dest: "{{ ssh_client_config_dir }}/{{ ssh_client_config_manifest_file }}"
+    owner: root
+    group: root
+    mode: "0600"

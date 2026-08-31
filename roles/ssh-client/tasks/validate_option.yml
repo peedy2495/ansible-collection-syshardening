@@ -1,0 +1,50 @@
+---
+- name: Validate option structure
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_option_entry.key is match('^[A-Za-z][A-Za-z0-9]*$')
+      - ssh_client_config_option_entry.value is not none
+      - ssh_client_config_option_entry.value is not mapping
+      - >-
+        ssh_client_config_option_entry.value is string or
+        ssh_client_config_option_entry.value is number or
+        ssh_client_config_option_entry.value is boolean or
+        (ssh_client_config_option_entry.value is sequence and
+         ssh_client_config_option_entry.value is not string)
+      - >-
+        ssh_client_config_option_entry.value is not string or
+        ('\n' not in ssh_client_config_option_entry.value and
+         '\r' not in ssh_client_config_option_entry.value)
+      - >-
+        ssh_client_config_option_entry.value is not sequence or
+        ssh_client_config_option_entry.value is string or
+        ssh_client_config_option_entry.value | length > 0
+    fail_msg: >-
+      Option '{{ ssh_client_config_option_entry.key }}' in fragment
+      '{{ ssh_client_config_validation_fragment_name }}' is invalid. Names must
+      be OpenSSH-style keywords; values must be a scalar or non-empty list and
+      must not contain line breaks.
+
+- name: Validate items in an option list
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_option_list_item is not none
+      - >-
+        ssh_client_config_option_list_item is string or
+        ssh_client_config_option_list_item is number or
+        ssh_client_config_option_list_item is boolean
+      - >-
+        ssh_client_config_option_list_item is not string or
+        ('\n' not in ssh_client_config_option_list_item and
+         '\r' not in ssh_client_config_option_list_item)
+    fail_msg: >-
+      A list item for option '{{ ssh_client_config_option_entry.key }}' in
+      fragment '{{ ssh_client_config_validation_fragment_name }}' is invalid.
+      List items must be scalar and must not contain line breaks.
+  loop: >-
+    {{ ssh_client_config_option_entry.value
+       if (ssh_client_config_option_entry.value is sequence and
+           ssh_client_config_option_entry.value is not string)
+       else [] }}
+  loop_control:
+    loop_var: ssh_client_config_option_list_item

@@ -1,0 +1,21 @@
+---
+- name: Require at least one block in fragment
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_fragment_entry.value.blocks | length > 0
+    fail_msg: >-
+      Fragment '{{ ssh_client_config_fragment_entry.key }}' must contain at
+      least one block.
+
+- name: Validate blocks in fragment
+  ansible.builtin.include_tasks: validate_block.yml
+  vars:
+    ssh_client_config_validation_fragment_name: >-
+      {{ ssh_client_config_fragment_entry.key }}
+    ssh_client_config_validation_block: "{{ ssh_client_config_block_entry }}"
+  loop: "{{ ssh_client_config_fragment_entry.value.blocks }}"
+  loop_control:
+    loop_var: ssh_client_config_block_entry
+    label: >-
+      {{ ssh_client_config_fragment_entry.key }}:{{
+         ssh_client_config_block_entry.host | default('missing-host') }}
