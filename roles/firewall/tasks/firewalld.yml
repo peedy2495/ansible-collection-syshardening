@@ -1,0 +1,160 @@
+---
+- name: Determine whether firewalld configuration is requested
+  ansible.builtin.set_fact:
+    firewall_firewalld_configuration_requested: >-
+      {{ firewall_default_policies | length > 0
+         or firewall_effective_rules | length > 0
+         or firewall_loopback == 'allow'
+         or firewall_stateful == 'required'
+         or firewall_ipv6 == 'enabled'
+         or firewall_log_denied != 'unchanged' }}
+
+- name: Partition firewalld rules by direction
+  ansible.builtin.set_fact:
+    firewall_firewalld_input_rules: >-
+      {{ firewall_effective_rules
+         | selectattr('direction', 'equalto', 'input') | list }}
+    firewall_firewalld_output_rules: >-
+      {{ firewall_effective_rules
+         | selectattr('direction', 'equalto', 'output') | list }}
+    firewall_firewalld_forward_rules: >-
+      {{ firewall_effective_rules
+         | selectattr('direction', 'equalto', 'forward') | list }}
+
+- name: Inspect firewalld service state
+  ansible.builtin.service_facts:
+  when: firewall_firewalld_configuration_requested
+
+- name: Validate installed firewalld service
+  ansible.builtin.assert:
+    that:
+      - >-
+        'firewalld.service' in ansible_facts.services
+        or 'firewalld' in ansible_facts.services
+    fail_msg: >-
+      firewalld must be installed before firewall configuration is requested.
+  when: firewall_firewalld_configuration_requested
+
+- name: Record initial firewalld runtime state
+  ansible.builtin.set_fact:
+    firewall_firewalld_was_running: >-
+      {{ ansible_facts.services.get(
+           'firewalld.service',
+           ansible_facts.services.get('firewalld', {})).get(
+             'state', 'unknown') == 'running' }}
+  when: firewall_firewalld_configuration_requested
+
+- name: Ensure firewalld policy directory exists
+  ansible.builtin.file:
+    path: /etc/firewalld/policies
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: firewall_firewalld_configuration_requested
+  notify: Log firewall configuration change
+
+- name: Manage firewalld input policy
+  ansible.builtin.template:
+    src: firewalld_policy.xml.j2
+    dest: /etc/firewalld/policies/ansible-input.xml
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    firewall_firewalld_policy_direction: input
+    firewall_firewalld_policy_ingress: ANY
+    firewall_firewalld_policy_egress: HOST
+    firewall_firewalld_policy_target: >-
+      {{ firewall_default_policies.get('input', 'continue') }}
+    firewall_firewalld_policy_rules: "{{ firewall_firewalld_input_rules }}"
+  when: >-
+    firewall_default_policies.input is defined
+    or firewall_firewalld_input_rules | length > 0
+  notify:
+    - Reload firewalld
+    - Log firewall configuration change
+
+- name: Manage firewalld output policy
+  ansible.builtin.template:
+    src: firewalld_policy.xml.j2
+    dest: /etc/firewalld/policies/ansible-output.xml
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    firewall_firewalld_policy_direction: output
+    firewall_firewalld_policy_ingress: HOST
+    firewall_firewalld_policy_egress: ANY
+    firewall_firewalld_policy_target: >-
+      {{ firewall_default_policies.get('output', 'continue') }}
+    firewall_firewalld_policy_rules: "{{ firewall_firewalld_output_rules }}"
+  when: >-
+    firewall_default_policies.output is defined
+    or firewall_firewalld_output_rules | length > 0
+  notify:
+    - Reload firewalld
+    - Log firewall configuration change
+
+- name: Manage firewalld forward policy
+  ansible.builtin.template:
+    src: firewalld_policy.xml.j2
+    dest: /etc/firewalld/policies/ansible-forward.xml
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    firewall_firewalld_policy_direction: forward
+    firewall_firewalld_policy_ingress: ANY
+    firewall_firewalld_policy_egress: ANY
+    firewall_firewalld_policy_target: >-
+      {{ firewall_default_policies.get('forward', 'continue') }}
+    firewall_firewalld_policy_rules: "{{ firewall_firewalld_forward_rules }}"
+  when: >-
+    firewall_default_policies.forward is defined
+    or firewall_firewalld_forward_rules | length > 0
+  notify:
+    - Reload firewalld
+    - Log firewall configuration change
+
+- name: Configure firewalld denied-traffic logging
+  ansible.builtin.lineinfile:
+    path: /etc/firewalld/firewalld.conf
+    regexp: '^LogDenied='
+    line: >-
+      LogDenied={{ 'all' if firewall_log_denied == 'enabled' else 'off' }}
+    owner: root
+    group: root
+    mode: "0644"
+  when: firewall_log_denied != 'unchanged'
+  notify:
+    - Reload firewalld
+    - Log firewall configuration change
+
+- name: Validate permanent firewalld configuration online
+  ansible.builtin.command:
+    argv:
+      - firewall-cmd
+      - --check-config
+  changed_when: false
+  when:
+    - firewall_firewalld_configuration_requested
+    - firewall_firewalld_was_running
+
+- name: Validate permanent firewalld configuration offline
+  ansible.builtin.command:
+    argv:
+      - firewall-offline-cmd
+      - --check-config
+  changed_when: false
+  when:
+    - firewall_firewalld_configuration_requested
+    - not firewall_firewalld_was_running
+
+- name: Apply requested firewalld service state
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: "{{ firewall_state == 'enabled' }}"
+    state: "{{ 'started' if firewall_state == 'enabled' else 'stopped' }}"
+  when: firewall_state != 'unchanged'
+  notify: Log firewall configuration change

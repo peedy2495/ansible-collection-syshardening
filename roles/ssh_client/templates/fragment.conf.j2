@@ -1,0 +1,35 @@
+# Managed by Ansible collection role peedy2495.syshardening.ssh_client
+# Fragment: {{ ssh_client_config_fragment.key }}; priority: {{ ssh_client_config_fragment.value.priority }}
+{% set fragment = ssh_client_config_fragment.value -%}
+{% for reference in fragment.references | default([]) %}
+# Reference: {{ reference }}
+{% endfor -%}
+{% if fragment.blocks is defined -%}
+{% set blocks = fragment.blocks -%}
+{% else -%}
+{% set blocks = [{'host': fragment.host | default('*'), 'options': fragment.options}] -%}
+{% endif -%}
+{% for block in blocks %}
+Host {{ block.host }}
+{% for option in block.options | dict2items | sort(attribute='key') -%}
+{% set value = option.value -%}
+{% if value is boolean %}
+    {{ option.key }} {{ 'yes' if value else 'no' }}
+{% elif value is sequence and value is not string -%}
+{% set mode = ssh_client_config_list_modes.get(option.key, 'repeat') -%}
+{% if mode == 'comma' %}
+    {{ option.key }} {{ value | join(',') }}
+{% elif mode == 'space' %}
+    {{ option.key }} {{ value | join(' ') }}
+{% else -%}
+{% for list_item in value %}
+    {{ option.key }} {{ ('yes' if list_item else 'no') if list_item is boolean else list_item }}
+{% endfor -%}
+{% endif -%}
+{% else %}
+    {{ option.key }} {{ value }}
+{% endif -%}
+{% endfor -%}
+{% if not loop.last %}
+{% endif -%}
+{% endfor -%}

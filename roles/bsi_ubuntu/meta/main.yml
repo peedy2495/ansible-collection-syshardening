@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: bsi_ubuntu
+  namespace: peedy2495
+  author: peedy2495
+  description: Select implemented BSI policy roles for Ubuntu.
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - bsi
+    - grundschutz
+    - ubuntu
+    - security
+dependencies: []

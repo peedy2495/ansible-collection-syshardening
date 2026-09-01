@@ -1,0 +1,28 @@
+---
+# Internal mapping; deliberately not a public backend selector.
+firewall_backend_by_os_family:
+  Debian: ufw
+  RedHat: firewalld
+  Suse: firewalld
+
+firewall_firewalld_policy_target_by_action:
+  allow: ACCEPT
+  deny: DROP
+  reject: REJECT
+
+firewall_firewalld_rule_action_by_action:
+  allow: accept
+  deny: drop
+  reject: reject
+
+firewall_rule_allowed_keys:
+  - name
+  - action
+  - direction
+  - protocol
+  - source
+  - source_port
+  - destination
+  - destination_port
+  - log
+  - state

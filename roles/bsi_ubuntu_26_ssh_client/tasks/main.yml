@@ -1,0 +1,16 @@
+---
+- name: Validate the BSI Ubuntu 26 SSH client target
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Ubuntu'
+      - ansible_distribution_major_version == '26'
+    fail_msg: >-
+      The bsi_ubuntu_26_ssh_client policy applies only to Ubuntu 26.x; detected
+      {{ ansible_distribution }} {{ ansible_distribution_version }}.
+
+- name: Apply the BSI Ubuntu 26 SSH client policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.ssh_client
+  vars:
+    ssh_client_config_fragments: >-
+      {{ bsi_ubuntu_26_ssh_client_fragments }}

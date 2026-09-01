@@ -1,0 +1,103 @@
+---
+# BSI policy for the system-wide OpenSSH client on Ubuntu 26.04.
+bsi_ubuntu_26_ssh_client_fragments:
+  crypto:
+    priority: 10
+    enabled: true
+    references:
+      - >-
+        BSI TR-02102-4 (2026-01), Abschnitt 3.3, Tabelle 2
+      - >-
+        BSI TR-02102-4 (2026-01), Abschnitt 3.4, Tabelle 3
+      - >-
+        BSI TR-02102-4 (2026-01), Abschnitt 3.5, Tabelle 4
+      - >-
+        BSI IT-Grundschutz OPS.1.2.5.A8 (S), Absatz 1, Sätze 1-3
+    options:
+      # BSI TR-02102-4 (2026-01), Abschnitt 3.4, Tabelle 3.
+      Ciphers:
+        - aes128-gcm@openssh.com
+        - aes256-gcm@openssh.com
+        - aes128-ctr
+        - aes192-ctr
+        - aes256-ctr
+      # BSI TR-02102-4 (2026-01), Abschnitt 3.3, Tabelle 2.
+      # group15 is not implemented by OpenSSH; group-exchange is omitted because
+      # ssh_config cannot enforce the minimum group parameters in the remarks.
+      KexAlgorithms:
+        - diffie-hellman-group16-sha512
+        - ecdh-sha2-nistp256
+        - ecdh-sha2-nistp384
+        - ecdh-sha2-nistp521
+      # BSI TR-02102-4 (2026-01), Abschnitt 3.5, Tabelle 4.
+      MACs:
+        - hmac-sha2-256
+        - hmac-sha2-512
+  rekey:
+    priority: 20
+    enabled: true
+    references:
+      - >-
+        BSI TR-02102-4 (2026-01), Abschnitt 3.3.1, Absatz 1, Satz 3
+    options:
+      # BSI TR-02102-4 (2026-01), Abschnitt 3.3.1, Absatz 1, Satz 3:
+      # neue Sitzungsschlüssel nach einer Stunde oder einem Gigabyte.
+      RekeyLimit: 1G 1h
+  server_authentication:
+    priority: 30
+    enabled: true
+    references:
+      - >-
+        BSI TR-02102-4 (2026-01), Abschnitt 3.6, Tabelle 5
+      - >-
+        BSI TR-02102-4 (2026-01), Abschnitt 4.1, Absatz 2
+    options:
+      # BSI TR-02102-4 (2026-01), Abschnitt 3.6, Tabelle 5, Nr. 2.
+      HostKeyAlgorithms:
+        - ecdsa-sha2-nistp256
+        - ecdsa-sha2-nistp384
+        - ecdsa-sha2-nistp521
+      # BSI TR-02102-4 (2026-01), Abschnitt 4.1, Absatz 2:
+      # Vertrauensanker müssen manipulationssicher gespeichert werden.
+      StrictHostKeyChecking: "yes"
+      HashKnownHosts: true
+  client_authentication:
+    priority: 40
+    enabled: true
+    references:
+      - >-
+        BSI TR-02102-4 (2026-01), Abschnitt 3.7, Absatz 3
+    options:
+      # BSI TR-02102-4 (2026-01), Abschnitt 3.7, Absatz 3:
+      # Public-Key-Authentisierung mit einem Verfahren aus Tabelle 5.
+      PubkeyAuthentication: true
+      PreferredAuthentications:
+        - publickey
+      PubkeyAcceptedAlgorithms:
+        - ecdsa-sha2-nistp256
+        - ecdsa-sha2-nistp384
+        - ecdsa-sha2-nistp521
+      PasswordAuthentication: false
+      KbdInteractiveAuthentication: false
+      HostbasedAuthentication: false
+      GSSAPIAuthentication: false
+  connection_scope:
+    priority: 50
+    enabled: true
+    references:
+      - >-
+        BSI IT-Grundschutz OPS.1.2.5.A3 (B), Absatz 1, Sätze 1-2
+    options:
+      # OPS.1.2.5.A3 (B), Absatz 1, Satz 1:
+      # Kommunikationsverbindungen auf das notwendige Maß beschränken.
+      ClearAllForwardings: true
+      ForwardAgent: false
+      ForwardX11: false
+      ForwardX11Trusted: false
+      Tunnel: false
+      # OPS.1.2.5.A3 (B), Absatz 1, Satz 2:
+      # Fernwartungsverbindungen nach dem Fernzugriff trennen.
+      ControlMaster: false
+      ControlPersist: false
+      ServerAliveInterval: 15
+      ServerAliveCountMax: 3

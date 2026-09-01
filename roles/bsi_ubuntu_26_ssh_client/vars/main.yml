@@ -1,0 +1,16 @@
+---
+_bsi_ubuntu_26_ssh_client_policy:
+  technical_guideline:
+    name: BSI TR-02102-4 Verwendung von Secure Shell
+    version: 2026-01
+    date: "2026-01-27"
+    source: >-
+      https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/
+      TechnischeRichtlinien/TR02102/BSI-TR-02102-4.pdf
+  grundschutz:
+    name: BSI IT-Grundschutz OPS.1.2.5 Fernwartung
+    edition: "2023"
+    source: >-
+      https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/
+      IT-GS-Kompendium_Einzel_PDFs_2023/04_OPS_Betrieb/
+      OPS_1_2_5_Fernwartung_Edition_2023.pdf

@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  role_name: bsi_all_firewall
+  namespace: peedy2495
+  author: peedy2495
+  description: Apply the platform-independent BSI firewall policy.
+  min_ansible_version: "2.14"
+  galaxy_tags:
+    - bsi
+    - firewall
+    - grundschutz
+    - security
+dependencies: []

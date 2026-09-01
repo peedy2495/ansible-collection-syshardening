@@ -1,0 +1,28 @@
+---
+- name: Apply the BSI firewall policy to a standard client
+  hosts: all
+  become: true
+  gather_facts: true
+  serial: 1
+
+  pre_tasks:
+    - name: Require the organization management network
+      ansible.builtin.assert:
+        that:
+          - bsi_example_management_network is defined
+          - bsi_example_management_network | string | length > 0
+        fail_msg: >-
+          Define bsi_example_management_network in inventory before applying
+          the default-deny INPUT policy remotely.
+
+  roles:
+    - role: peedy2495.syshardening.bsi_all
+      bsi_all_firewall_protection_level: standard
+      bsi_all_firewall_required_rules:
+        # NET.3.2.A2 and A4: authorize only the documented management path.
+        - name: Allow SSH from the organization management network
+          action: allow
+          direction: input
+          protocol: tcp
+          source: "{{ bsi_example_management_network }}"
+          destination_port: "22"

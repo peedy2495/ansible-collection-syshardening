@@ -1,0 +1,32 @@
+---
+- name: Validate BSI firewall protection level
+  ansible.builtin.assert:
+    that:
+      - bsi_all_firewall_protection_level in ['standard', 'increased']
+    fail_msg: >-
+      bsi_all_firewall_protection_level must be standard or increased.
+
+- name: Apply BSI firewall policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.firewall
+  vars:
+    # BSI NET.3.2.A2 and A4: inbound allowlist, no implicit services.
+    firewall_rules: "{{ bsi_all_firewall_required_rules }}"
+    firewall_default_policies:
+      input: deny
+      # BSI NET.3.2.A2: increased protection requires an outbound allowlist.
+      output: >-
+        {{ 'allow'
+           if bsi_all_firewall_protection_level == 'standard'
+           else 'deny' }}
+      # BSI NET.3.2.A8: routing is denied unless explicitly designed.
+      forward: deny
+    # BSI NET.3.2.A3: filtering must be stateful.
+    firewall_stateful: required
+    # BSI NET.3.2.A3: apply the same filtering logic to IPv4 and IPv6.
+    firewall_ipv6: enabled
+    firewall_loopback: allow
+    # BSI NET.3.2.A9: log denied connections and configuration changes.
+    firewall_log_denied: enabled
+    firewall_log_configuration_changes: true
+    firewall_state: enabled

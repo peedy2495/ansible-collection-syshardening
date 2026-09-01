@@ -1,0 +1,13 @@
+---
+argument_specs:
+  main:
+    short_description: Apply the common BSI firewall policy
+    options:
+      bsi_all_firewall_protection_level:
+        type: str
+        choices:
+          - standard
+          - increased
+      bsi_all_firewall_required_rules:
+        type: list
+        elements: dict

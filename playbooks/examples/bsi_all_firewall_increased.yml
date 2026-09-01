@@ -1,0 +1,58 @@
+---
+- name: Apply the BSI firewall policy to a client with increased protection
+  hosts: all
+  become: true
+  gather_facts: true
+  serial: 1
+
+  pre_tasks:
+    - name: Require organization communication endpoints
+      ansible.builtin.assert:
+        that:
+          - bsi_example_management_network is defined
+          - bsi_example_management_network | string | length > 0
+          - bsi_example_dns_resolver is defined
+          - bsi_example_dns_resolver | string | length > 0
+          - bsi_example_ntp_server is defined
+          - bsi_example_ntp_server | string | length > 0
+          - bsi_example_https_proxy is defined
+          - bsi_example_https_proxy | string | length > 0
+        fail_msg: >-
+          Define the management network, DNS resolver, NTP server, and HTTPS
+          proxy example variables in inventory before enabling OUTPUT deny.
+
+  roles:
+    - role: peedy2495.syshardening.bsi_all
+      bsi_all_firewall_protection_level: increased
+      bsi_all_firewall_required_rules:
+        # NET.3.2.A2 and A4: every communication relationship is explicit.
+        - name: Allow SSH from the organization management network
+          action: allow
+          direction: input
+          protocol: tcp
+          source: "{{ bsi_example_management_network }}"
+          destination_port: "22"
+        - name: Allow DNS over UDP to the organization resolver
+          action: allow
+          direction: output
+          protocol: udp
+          destination: "{{ bsi_example_dns_resolver }}"
+          destination_port: "53"
+        - name: Allow DNS over TCP to the organization resolver
+          action: allow
+          direction: output
+          protocol: tcp
+          destination: "{{ bsi_example_dns_resolver }}"
+          destination_port: "53"
+        - name: Allow time synchronization with the organization NTP server
+          action: allow
+          direction: output
+          protocol: udp
+          destination: "{{ bsi_example_ntp_server }}"
+          destination_port: "123"
+        - name: Allow HTTPS through the organization proxy
+          action: allow
+          direction: output
+          protocol: tcp
+          destination: "{{ bsi_example_https_proxy }}"
+          destination_port: "443"

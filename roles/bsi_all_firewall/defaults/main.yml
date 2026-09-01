@@ -1,0 +1,8 @@
+---
+# Deployment profile: standard authorizes general client egress; increased uses
+# an outbound allowlist supplied through firewall_additional_rules.
+bsi_all_firewall_protection_level: standard
+
+# NET.3.2.A2 and A4: No service is opened implicitly. A policy or inventory
+# must document every required rule explicitly.
+bsi_all_firewall_required_rules: []

@@ -1,0 +1,95 @@
+---
+argument_specs:
+  main:
+    short_description: Manage a portable UFW or firewalld policy
+    options:
+      firewall_state:
+        type: str
+        choices:
+          - unchanged
+          - enabled
+          - disabled
+      firewall_default_policies:
+        type: dict
+        options:
+          input:
+            type: str
+            choices: &firewall_policy_choices
+              - allow
+              - deny
+              - reject
+          output:
+            type: str
+            choices: *firewall_policy_choices
+          forward:
+            type: str
+            choices: *firewall_policy_choices
+      firewall_loopback:
+        type: str
+        choices:
+          - unchanged
+          - allow
+      firewall_stateful:
+        type: str
+        choices:
+          - unchanged
+          - required
+      firewall_ipv6:
+        type: str
+        choices:
+          - unchanged
+          - enabled
+      firewall_log_denied:
+        type: str
+        choices:
+          - unchanged
+          - enabled
+          - disabled
+      firewall_log_configuration_changes:
+        type: bool
+      firewall_rules:
+        type: list
+        elements: dict
+        options: &firewall_rule_options
+          name:
+            type: str
+            required: true
+          action:
+            type: str
+            required: true
+            choices:
+              - allow
+              - deny
+              - reject
+          direction:
+            type: str
+            choices:
+              - input
+              - output
+              - forward
+          protocol:
+            type: str
+            choices:
+              - any
+              - tcp
+              - udp
+              - sctp
+          source:
+            type: str
+          source_port:
+            type: str
+          destination:
+            type: str
+          destination_port:
+            type: str
+          log:
+            type: bool
+          state:
+            type: str
+            choices:
+              - present
+              - absent
+      firewall_additional_rules:
+        type: list
+        elements: dict
+        options: *firewall_rule_options

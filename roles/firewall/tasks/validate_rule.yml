@@ -1,0 +1,41 @@
+---
+- name: Validate firewall rule structure
+  ansible.builtin.assert:
+    that:
+      - firewall_rule is mapping
+      - >-
+        firewall_rule.keys()
+        | difference(firewall_rule_allowed_keys)
+        | length == 0
+      - firewall_rule.name is defined
+      - firewall_rule.name is string
+      - firewall_rule.name | length > 0
+      - firewall_rule.action is defined
+      - firewall_rule.action in ['allow', 'deny', 'reject']
+      - firewall_rule.direction in ['input', 'output', 'forward']
+      - firewall_rule.get('protocol', 'any') in ['any', 'tcp', 'udp', 'sctp']
+      - firewall_rule.get('source', 'any') is string
+      - firewall_rule.get('destination', 'any') is string
+      - firewall_rule.get('log', false) is boolean
+      - firewall_rule.get('state', 'present') in ['present', 'absent']
+      - >-
+        firewall_rule.source_port is not defined
+        or firewall_rule.source_port | string
+        is match('^[0-9]+(-[0-9]+)?$')
+      - >-
+        firewall_rule.destination_port is not defined
+        or firewall_rule.destination_port | string
+        is match('^[0-9]+(-[0-9]+)?$')
+      - >-
+        firewall_rule.source_port is not defined
+        or firewall_rule.destination_port is not defined
+      - >-
+        (firewall_rule.source_port is not defined
+        and firewall_rule.destination_port is not defined)
+        or firewall_rule.get('protocol', 'any') != 'any'
+    fail_msg: >-
+      Invalid firewall rule
+      '{{ firewall_rule.name | default('unnamed rule') }}'.
+      Use only the documented common inbound-rule fields. A rule supports one
+      source or destination port, requires tcp, udp, or sctp for a port, and
+      uses N or N-N notation.

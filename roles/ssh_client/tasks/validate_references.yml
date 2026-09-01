@@ -1,0 +1,16 @@
+---
+- name: Validate policy reference text
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_policy_reference is string
+      - ssh_client_config_policy_reference | length > 0
+      - "'\n' not in ssh_client_config_policy_reference"
+      - "'\r' not in ssh_client_config_policy_reference"
+    fail_msg: >-
+      Policy references in fragment
+      '{{ ssh_client_config_reference_fragment.key }}' must be non-empty,
+      single-line strings.
+  loop: "{{ ssh_client_config_reference_fragment.value.references }}"
+  loop_control:
+    loop_var: ssh_client_config_policy_reference
+    label: "{{ ssh_client_config_policy_reference }}"

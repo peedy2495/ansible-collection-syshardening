@@ -1,0 +1,9 @@
+---
+argument_specs:
+  main:
+    short_description: Apply BSI SSH client policy for Ubuntu 26
+    options:
+      bsi_ubuntu_26_ssh_client_fragments:
+        type: dict
+        description: >-
+          BSI policy fragments passed to the ssh_client implementation role.

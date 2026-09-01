@@ -1,0 +1,32 @@
+---
+- name: Reload firewalld
+  ansible.builtin.command:
+    argv:
+      - firewall-cmd
+      - --reload
+  changed_when: true
+  when:
+    - firewall_firewalld_was_running | default(false)
+    - firewall_state != 'disabled'
+
+- name: Reload UFW
+  community.general.ufw:
+    state: enabled
+  when:
+    - firewall_state != 'disabled'
+    - >-
+      firewall_ufw_was_active | default(false)
+      or firewall_state == 'enabled'
+
+- name: Log firewall configuration change
+  community.general.syslogger:
+    ident: ansible-firewall
+    facility: auth
+    priority: notice
+    msg: >-
+      Firewall configuration changed by peedy2495.syshardening.firewall
+      using backend {{ firewall_detected_backend }};
+      defaults={{ firewall_default_policies | to_json }};
+      managed_rules={{ firewall_effective_rules | length }}.
+  changed_when: false
+  when: firewall_log_configuration_changes

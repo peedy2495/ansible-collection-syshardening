@@ -1,0 +1,3 @@
+---
+# OpenSSH client configuration is read per invocation.
+# No service restart is needed.

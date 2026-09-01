@@ -1,0 +1,128 @@
+---
+- name: Inspect initial UFW runtime state
+  ansible.builtin.command:
+    argv:
+      - ufw
+      - status
+  environment:
+    LC_ALL: C
+  register: firewall_ufw_status
+  check_mode: false
+  changed_when: false
+  failed_when: false
+  when: firewall_ipv6 == 'enabled'
+
+- name: Record initial UFW runtime state
+  ansible.builtin.set_fact:
+    firewall_ufw_was_active: >-
+      {{ 'Status: active' in firewall_ufw_status.stdout }}
+  when: firewall_ipv6 == 'enabled'
+
+- name: Require UFW IPv6 filtering
+  ansible.builtin.lineinfile:
+    path: /etc/default/ufw
+    regexp: '^IPV6='
+    line: IPV6=yes
+    owner: root
+    group: root
+    mode: "0644"
+  when: firewall_ipv6 == 'enabled'
+  notify:
+    - Reload UFW
+    - Log firewall configuration change
+
+- name: Read UFW stateful framework rules
+  ansible.builtin.slurp:
+    src: "{{ firewall_ufw_stateful_file }}"
+  loop: >-
+    {{ ['/etc/ufw/before.rules']
+       + (['/etc/ufw/before6.rules']
+          if firewall_ipv6 == 'enabled' else []) }}
+  loop_control:
+    loop_var: firewall_ufw_stateful_file
+    label: "{{ firewall_ufw_stateful_file }}"
+  register: firewall_ufw_stateful_files
+  when: firewall_stateful == 'required'
+
+- name: Validate UFW established and related handling
+  ansible.builtin.assert:
+    that:
+      - >-
+        (firewall_ufw_stateful_file.content | b64decode
+         | regex_search(
+           '(?m)--ctstate[ ]+'
+           + '(RELATED,ESTABLISHED|ESTABLISHED,RELATED)'
+           + '.*-j[ ]+ACCEPT')) is not none
+    fail_msg: >-
+      {{ firewall_ufw_stateful_file.source }} must accept ESTABLISHED and
+      RELATED traffic for the requested stateful policy.
+  loop: "{{ firewall_ufw_stateful_files.results | default([]) }}"
+  loop_control:
+    loop_var: firewall_ufw_stateful_file
+    label: "{{ firewall_ufw_stateful_file.source | default('unknown file') }}"
+  when: firewall_stateful == 'required'
+
+- name: Allow UFW loopback input
+  community.general.ufw:
+    rule: allow
+    direction: in
+    interface: lo
+    comment: Allow loopback input
+  when: firewall_loopback == 'allow'
+  notify: Log firewall configuration change
+
+- name: Apply UFW rules
+  community.general.ufw:
+    rule: "{{ firewall_rule.action }}"
+    direction: >-
+      {{ {'input': 'in', 'output': 'out'}[firewall_rule.direction]
+         if firewall_rule.direction != 'forward' else omit }}
+    route: "{{ firewall_rule.direction == 'forward' }}"
+    proto: >-
+      {{ firewall_rule.protocol
+         if firewall_rule.protocol is defined
+         and firewall_rule.protocol != 'any'
+         else omit }}
+    from_ip: "{{ firewall_rule.source | default('any') }}"
+    from_port: >-
+      {{ firewall_rule.source_port | string | replace('-', ':')
+         if firewall_rule.source_port is defined
+         else omit }}
+    to_ip: "{{ firewall_rule.destination | default('any') }}"
+    to_port: >-
+      {{ firewall_rule.destination_port | string | replace('-', ':')
+         if firewall_rule.destination_port is defined
+         else omit }}
+    log: "{{ firewall_rule.log | default(false) }}"
+    comment: "{{ firewall_rule.name }}"
+    delete: "{{ firewall_rule.get('state', 'present') == 'absent' }}"
+  loop: "{{ firewall_effective_rules }}"
+  loop_control:
+    loop_var: firewall_rule
+    label: "{{ firewall_rule.name }}"
+  notify: Log firewall configuration change
+
+- name: Apply UFW default policies
+  community.general.ufw:
+    default: "{{ firewall_default_policy.value }}"
+    direction: >-
+      {{ {'input': 'incoming', 'output': 'outgoing',
+          'forward': 'routed'}[firewall_default_policy.key] }}
+  loop: "{{ firewall_default_policies | dict2items }}"
+  loop_control:
+    loop_var: firewall_default_policy
+    label: >-
+      {{ firewall_default_policy.key }}={{ firewall_default_policy.value }}
+  notify: Log firewall configuration change
+
+- name: Configure UFW denied-traffic logging
+  community.general.ufw:
+    logging: "{{ 'medium' if firewall_log_denied == 'enabled' else 'off' }}"
+  when: firewall_log_denied != 'unchanged'
+  notify: Log firewall configuration change
+
+- name: Apply requested UFW service state
+  community.general.ufw:
+    state: "{{ firewall_state }}"
+  when: firewall_state != 'unchanged'
+  notify: Log firewall configuration change

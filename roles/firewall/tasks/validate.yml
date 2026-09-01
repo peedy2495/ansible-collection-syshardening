@@ -1,0 +1,42 @@
+---
+- name: Validate supported operating system family
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_os_family in firewall_backend_by_os_family
+    fail_msg: >-
+      The firewall backend cannot be detected. Gather facts and use a supported
+      OS family: {{ firewall_backend_by_os_family.keys() | list | join(', ') }}.
+
+- name: Validate common firewall settings
+  ansible.builtin.assert:
+    that:
+      - firewall_state in ['unchanged', 'enabled', 'disabled']
+      - firewall_loopback in ['unchanged', 'allow']
+      - firewall_stateful in ['unchanged', 'required']
+      - firewall_ipv6 in ['unchanged', 'enabled']
+      - firewall_log_denied in ['unchanged', 'enabled', 'disabled']
+      - firewall_log_configuration_changes is boolean
+      - firewall_default_policies is mapping
+      - firewall_rules is sequence
+      - firewall_rules is not string
+      - firewall_additional_rules is sequence
+      - firewall_additional_rules is not string
+      - >-
+        firewall_default_policies.keys()
+        | difference(['input', 'output', 'forward'])
+        | length == 0
+      - >-
+        firewall_default_policies.values()
+        | difference(['allow', 'deny', 'reject'])
+        | length == 0
+    fail_msg: >-
+      Invalid firewall configuration. See the firewall role README for the
+      portable state, policy, loopback, stateful, IPv6, and logging values.
+
+- name: Validate each effective firewall rule
+  ansible.builtin.include_tasks: validate_rule.yml
+  loop: "{{ firewall_effective_rules }}"
+  loop_control:
+    loop_var: firewall_rule
+    label: "{{ firewall_rule.name | default('unnamed rule') }}"

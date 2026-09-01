@@ -1,0 +1,25 @@
+---
+- name: Initialize effective firewall rule set
+  ansible.builtin.set_fact:
+    firewall_effective_rules: []
+
+- name: Build effective firewall rule set
+  ansible.builtin.set_fact:
+    firewall_effective_rules: >-
+      {{ firewall_effective_rules
+         + [{'direction': 'input'} | combine(firewall_rule)] }}
+  loop: "{{ firewall_rules + firewall_additional_rules }}"
+  loop_control:
+    loop_var: firewall_rule
+    label: "{{ firewall_rule.name | default('unnamed rule') }}"
+
+- name: Validate firewall role input
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Detect firewall implementation from the operating system
+  ansible.builtin.set_fact:
+    firewall_detected_backend: >-
+      {{ firewall_backend_by_os_family[ansible_os_family] }}
+
+- name: Apply detected firewall implementation
+  ansible.builtin.include_tasks: "{{ firewall_detected_backend }}.yml"

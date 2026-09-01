@@ -1,0 +1,98 @@
+---
+- name: Validate top-level settings
+  ansible.builtin.assert:
+    that:
+      - ssh_client_config_fragment_suffix is match('^\.[A-Za-z0-9]+$')
+      - ssh_client_config_manifest_file is match('^[A-Za-z0-9._-]+$')
+      - ssh_client_config_validation_host | length > 0
+      - "'\n' not in ssh_client_config_validation_host"
+      - "'\r' not in ssh_client_config_validation_host"
+      - ssh_client_config_binary is match('^[A-Za-z0-9_./+-]+$')
+      - >-
+        ssh_client_config_list_modes.values() |
+        difference(['comma', 'space', 'repeat']) | length == 0
+    fail_msg: >-
+      Invalid ssh_client_config_* settings. Suffix and manifest must be safe
+      basenames, the validation host/binary must be safe, and list modes must be
+      one of comma, space, or repeat.
+
+- name: Validate fragment definition types
+  ansible.builtin.assert:
+    that:
+      - item.value is mapping
+    fail_msg: >-
+      Fragment '{{ item.key }}' must be a mapping containing priority, enabled,
+      and either options or blocks.
+  loop: "{{ ssh_client_config_fragments | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Validate each fragment definition
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[a-z0-9][a-z0-9_-]*$')
+      - item.value.priority is defined
+      - item.value.priority is integer
+      - item.value.priority >= 0
+      - item.value.priority <= 99
+      - item.value.enabled is defined
+      - item.value.enabled is boolean
+      - (item.value.options is defined) != (item.value.blocks is defined)
+      - item.value.options is not defined or item.value.options is mapping
+      - item.value.blocks is not defined or item.value.blocks is sequence
+      - item.value.blocks is not defined or item.value.blocks is not string
+      - item.value.host is not defined or item.value.host is string
+      - >-
+        item.value.references is not defined or
+        (item.value.references is sequence and
+         item.value.references is not string)
+      - >-
+        item.value.references is not defined or
+        item.value.references | length > 0
+      - >-
+        item.value.keys() |
+        difference(
+          ['priority', 'enabled', 'host', 'options', 'blocks', 'references']
+        ) |
+        length == 0
+    fail_msg: >-
+      Fragment '{{ item.key }}' is invalid. Names must match
+      ^[a-z0-9][a-z0-9_-]*$, priority must be 0..99, enabled must be boolean,
+      and exactly one of options (mapping) or blocks (list) is required.
+  loop: "{{ ssh_client_config_fragments | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Validate legacy fragment option blocks
+  ansible.builtin.include_tasks: validate_block.yml
+  vars:
+    ssh_client_config_validation_fragment_name: >-
+      {{ ssh_client_config_legacy_fragment_entry.key }}
+    ssh_client_config_validation_block:
+      host: >-
+        {{ ssh_client_config_legacy_fragment_entry.value.host | default('*') }}
+      options: "{{ ssh_client_config_legacy_fragment_entry.value.options }}"
+  loop: >-
+    {{ ssh_client_config_fragments | dict2items |
+       selectattr('value.options', 'defined') | list }}
+  loop_control:
+    loop_var: ssh_client_config_legacy_fragment_entry
+    label: "{{ ssh_client_config_legacy_fragment_entry.key }}"
+
+- name: Validate explicit fragment blocks
+  ansible.builtin.include_tasks: validate_fragment_blocks.yml
+  loop: >-
+    {{ ssh_client_config_fragments | dict2items |
+       selectattr('value.blocks', 'defined') | list }}
+  loop_control:
+    loop_var: ssh_client_config_fragment_entry
+    label: "{{ ssh_client_config_fragment_entry.key }}"
+
+- name: Validate fragment policy references
+  ansible.builtin.include_tasks: validate_references.yml
+  loop: >-
+    {{ ssh_client_config_fragments | dict2items |
+       selectattr('value.references', 'defined') | list }}
+  loop_control:
+    loop_var: ssh_client_config_reference_fragment
+    label: "{{ ssh_client_config_reference_fragment.key }}"

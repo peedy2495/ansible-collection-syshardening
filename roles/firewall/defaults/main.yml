@@ -1,0 +1,28 @@
+---
+# Leave the firewall service untouched unless a policy chooses a state.
+firewall_state: unchanged
+
+# An empty mapping performs no default-policy change.
+# Supported values for input, output, and forward are allow, deny, and reject.
+firewall_default_policies: {}
+
+# Leave native loopback handling unchanged or explicitly allow it.
+firewall_loopback: unchanged
+
+# Leave native state tracking unchanged or require a stateful backend setup.
+firewall_stateful: unchanged
+
+# Leave IP-family handling unchanged or require an IPv4/IPv6 dual stack.
+firewall_ipv6: unchanged
+
+# Leave denied-traffic logging unchanged, enable it, or disable it.
+firewall_log_denied: unchanged
+
+# Write a target syslog event when this role changes firewall configuration.
+firewall_log_configuration_changes: false
+
+# Policy-owned rules. See README for the common rule schema.
+firewall_rules: []
+
+# Inventory-owned additions, appended after firewall_rules.
+firewall_additional_rules: []

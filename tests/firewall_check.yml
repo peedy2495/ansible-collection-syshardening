@@ -1,0 +1,16 @@
+---
+- name: Check no-op firewall role with UFW detection
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_os_family: Debian
+  roles:
+    - role: peedy2495.syshardening.firewall
+
+- name: Check no-op firewall role with firewalld detection
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_os_family: RedHat
+  roles:
+    - role: peedy2495.syshardening.firewall

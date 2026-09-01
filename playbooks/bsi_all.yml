@@ -1,0 +1,7 @@
+---
+- name: Apply platform-independent BSI policies
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: peedy2495.syshardening.bsi_all

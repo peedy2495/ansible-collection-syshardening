@@ -1,0 +1,15 @@
+---
+_bsi_all_firewall_policy:
+  name: BSI IT-Grundschutz NET.3.2 Firewall
+  edition: "2023"
+  source: >-
+    {{ 'https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/'
+       ~ 'IT-GS-Kompendium_Einzel_PDFs_2023/'
+       ~ '09_NET_Netze_und_Kommunikation/'
+       ~ 'NET_3_2_Firewall_Edition_2023.pdf' }}
+  requirements:
+    allowlist: NET.3.2.A2
+    stateful_filtering: NET.3.2.A3
+    required_services_only: NET.3.2.A4
+    routing_disabled: NET.3.2.A8
+    logging: NET.3.2.A9
