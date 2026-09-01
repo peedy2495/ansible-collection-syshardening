@@ -1,0 +1,89 @@
+---
+- name: Validate kernel role input
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Check the running kernel build configuration
+  ansible.builtin.stat:
+    path: "{{ kernel_config_file }}"
+  register: kernel_build_config_file
+  when: kernel_config_requirements | length > 0
+
+- name: Require the running kernel build configuration
+  ansible.builtin.assert:
+    that:
+      - kernel_build_config_file.stat.exists
+      - kernel_build_config_file.stat.isreg
+      - kernel_build_config_file.stat.readable
+    fail_msg: >-
+      Kernel build verification requires a readable {{ kernel_config_file }}.
+      Configure kernel_config_file for this distribution if it is stored
+      elsewhere.
+  when: kernel_config_requirements | length > 0
+
+- name: Read the running kernel build configuration
+  ansible.builtin.slurp:
+    src: "{{ kernel_config_file }}"
+  register: kernel_build_config
+  when: kernel_config_requirements | length > 0
+
+- name: Verify required running kernel build options
+  ansible.builtin.assert:
+    that:
+      - >-
+        kernel_build_config.content
+        | b64decode
+        | regex_search(
+            '(?m)^'
+            ~ (kernel_config_option.key | regex_escape)
+            ~ '='
+            ~ (kernel_config_option.value | string | regex_escape)
+            ~ '$'
+          ) is not none
+    fail_msg: >-
+      The running kernel does not provide {{ kernel_config_option.key }}={{
+      kernel_config_option.value }} in {{ kernel_config_file }}. Install and
+      boot a kernel satisfying the policy before continuing.
+  loop: "{{ kernel_config_requirements | dict2items }}"
+  loop_control:
+    loop_var: kernel_config_option
+    label: "{{ kernel_config_option.key }}"
+  when: kernel_config_requirements | length > 0
+
+- name: Read the running kernel command line
+  ansible.builtin.slurp:
+    src: /proc/cmdline
+  register: kernel_command_line
+  when: kernel_forbidden_boot_parameters | length > 0
+
+- name: Reject boot parameters which disable kernel protections
+  ansible.builtin.assert:
+    that:
+      - >-
+        kernel_command_line.content
+        | b64decode
+        | regex_search(kernel_boot_parameter.pattern) is none
+    fail_msg: >-
+      The running kernel command line contains the forbidden setting
+      {{ kernel_boot_parameter.name }}. Remove it from the bootloader
+      configuration and reboot before continuing.
+  loop: "{{ kernel_forbidden_boot_parameters }}"
+  loop_control:
+    loop_var: kernel_boot_parameter
+    label: "{{ kernel_boot_parameter.name }}"
+  when: kernel_forbidden_boot_parameters | length > 0
+
+- name: Configure persistent and runtime sysctl parameters
+  ansible.posix.sysctl:
+    name: "{{ kernel_sysctl_setting.key }}"
+    value: "{{ kernel_sysctl_setting.value.value | default(omit) }}"
+    state: "{{ kernel_sysctl_setting.value.state | default('present') }}"
+    sysctl_file: "{{ kernel_sysctl_file }}"
+    sysctl_set: >-
+      {{ kernel_apply_runtime and
+         (kernel_sysctl_setting.value.state | default('present'))
+         == 'present' }}
+    reload: false
+  loop: "{{ kernel_sysctl_settings | dict2items }}"
+  loop_control:
+    loop_var: kernel_sysctl_setting
+    label: "{{ kernel_sysctl_setting.key }}"

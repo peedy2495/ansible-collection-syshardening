@@ -1,0 +1,40 @@
+---
+- name: Check kernel implementation no-op behavior
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_system: Linux
+    ansible_kernel: test
+  roles:
+    - role: peedy2495.syshardening.kernel
+
+- name: Check BSI Ubuntu 26 kernel policy projection
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_system: Linux
+    ansible_distribution: Ubuntu
+    ansible_distribution_major_version: "26"
+    ansible_distribution_version: "26.04"
+    ansible_kernel: test
+    kernel_config_file: "{{ playbook_dir }}/fixtures/kernel.config"
+    kernel_sysctl_file: /tmp/ansible-syshardening-kernel-check.conf
+    kernel_apply_runtime: false
+    bsi_ubuntu_26_kernel_overrides:
+      sysrq:
+        value: 176
+  roles:
+    - role: peedy2495.syshardening.bsi_ubuntu_26_kernel
+  post_tasks:
+    - name: Verify recursive policy override behavior
+      ansible.builtin.assert:
+        that:
+          - _bsi_ubuntu_26_kernel_effective_options.sysrq.value == 176
+          - _bsi_ubuntu_26_kernel_effective_options.aslr.enabled
+          - _bsi_ubuntu_26_kernel_sysctls['kernel.sysrq'].value == 176
+          - >-
+            _bsi_ubuntu_26_kernel_sysctls[
+              'kernel.randomize_va_space'
+            ].value == 2

@@ -1,0 +1,10 @@
+---
+argument_specs:
+  main:
+    short_description: Apply BSI kernel policy for Ubuntu 26
+    options:
+      bsi_ubuntu_26_kernel_overrides:
+        type: dict
+        description: >-
+          Per-option enabled or value deviations recursively merged with the
+          documented Ubuntu 26 standard policy.

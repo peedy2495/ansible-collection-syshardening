@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  role_name: kernel
+  namespace: peedy2495
+  author: peedy2495
+  description: Configure and verify policy-neutral Linux kernel controls.
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+    - name: EL
+      versions:
+        - all
+  galaxy_tags:
+    - kernel
+    - linux
+    - security
+    - sysctl
+dependencies: []

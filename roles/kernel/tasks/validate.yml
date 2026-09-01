@@ -1,0 +1,67 @@
+---
+- name: Validate common kernel settings
+  ansible.builtin.assert:
+    that:
+      - ansible_system is defined
+      - ansible_system == 'Linux'
+      - kernel_sysctl_settings is mapping
+      - kernel_config_requirements is mapping
+      - kernel_forbidden_boot_parameters is sequence
+      - kernel_forbidden_boot_parameters is not string
+      - kernel_sysctl_file | length > 0
+      - kernel_config_file | length > 0
+      - kernel_apply_runtime is boolean
+    fail_msg: >-
+      The kernel role requires Linux facts and valid sysctl, kernel build, and
+      boot parameter mappings. See the role README for its public interface.
+
+- name: Validate each sysctl parameter
+  ansible.builtin.assert:
+    that:
+      - kernel_sysctl_setting.value is mapping
+      - >-
+        kernel_sysctl_setting.value.keys()
+        | difference(['value', 'state'])
+        | length == 0
+      - >-
+        kernel_sysctl_setting.value.state | default('present')
+        in ['present', 'absent']
+      - >-
+        kernel_sysctl_setting.value.state | default('present') == 'absent'
+        or kernel_sysctl_setting.value.value is defined
+    fail_msg: >-
+      Invalid definition for sysctl {{ kernel_sysctl_setting.key }}. Use value
+      and an optional state of present or absent.
+  loop: "{{ kernel_sysctl_settings | dict2items }}"
+  loop_control:
+    loop_var: kernel_sysctl_setting
+    label: "{{ kernel_sysctl_setting.key }}"
+
+- name: Validate required kernel build values
+  ansible.builtin.assert:
+    that:
+      - kernel_config_option.key is match('^CONFIG_[A-Z0-9_]+$')
+      - kernel_config_option.value | string | length > 0
+    fail_msg: >-
+      Kernel build requirements must use CONFIG_* names and non-empty values.
+  loop: "{{ kernel_config_requirements | dict2items }}"
+  loop_control:
+    loop_var: kernel_config_option
+    label: "{{ kernel_config_option.key }}"
+
+- name: Validate forbidden boot parameter definitions
+  ansible.builtin.assert:
+    that:
+      - kernel_boot_parameter is mapping
+      - >-
+        kernel_boot_parameter.keys()
+        | difference(['name', 'pattern'])
+        | length == 0
+      - kernel_boot_parameter.name | default('') | length > 0
+      - kernel_boot_parameter.pattern | default('') | length > 0
+    fail_msg: >-
+      Every forbidden boot parameter needs only a name and a regular expression.
+  loop: "{{ kernel_forbidden_boot_parameters }}"
+  loop_control:
+    loop_var: kernel_boot_parameter
+    label: "{{ kernel_boot_parameter.name | default('unnamed parameter') }}"

@@ -1,0 +1,275 @@
+---
+_bsi_ubuntu_26_kernel_policy:
+  name: BSI IT-Grundschutz SYS.1.3 Server unter Linux und Unix
+  edition: "2023"
+  source: >-
+    {{ 'https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Grundschutz/'
+       ~ 'IT-GS-Kompendium_Einzel_PDFs_2023/07_SYS_IT_Systeme/'
+       ~ 'SYS_1_3_Server_unter_Linux_und_Unix_Edition_2023.pdf' }}
+  ubuntu_sources:
+    security_overview: >-
+      https://documentation.ubuntu.com/security/security-features/
+      security-features-overview/
+    process_memory: >-
+      https://documentation.ubuntu.com/security/security-features/
+      process-memory/
+    kernel_protections: >-
+      https://documentation.ubuntu.com/security/security-features/
+      kernel-protections/
+
+# The BSI requirements are technology-neutral. These Ubuntu 26 controls are
+# concrete realizations of A4 (mandatory) and A14/A17 (increased protection).
+# Every supported option is visible, including deliberately inactive controls.
+_bsi_ubuntu_26_kernel_standard_options:
+  aslr:
+    enabled: true
+    control: sysctl
+    name: kernel.randomize_va_space
+    value: 2
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 1
+    reason: Fully randomize process memory, including the heap.
+    impact: Legacy applications relying on fixed addresses can fail.
+  dep_nx:
+    enabled: true
+    control: boot_guard
+    pattern: '(^|\s)noexec=off(\s|$)'
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 1
+    reason: Prevent boot-time disabling of non-executable memory.
+    impact: >-
+      Software requiring executable data memory must use explicit mappings.
+  stack_protector:
+    enabled: true
+    control: kernel_config
+    name: CONFIG_STACKPROTECTOR_STRONG
+    value: y
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 2
+    reason: Detect stack corruption before control-flow takeover.
+    impact: Negligible CPU and memory overhead.
+  strict_kernel_memory_permissions:
+    enabled: true
+    control: kernel_config
+    name: CONFIG_STRICT_KERNEL_RWX
+    value: y
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 2
+    reason: Keep kernel code non-writable and kernel data non-executable.
+    impact: Out-of-tree code that changes protected memory can fail.
+  strict_module_memory_permissions:
+    enabled: true
+    control: kernel_config
+    name: CONFIG_STRICT_MODULE_RWX
+    value: y
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 2
+    reason: Apply write-xor-execute protection to loaded modules.
+    impact: Non-conforming third-party modules can fail to load.
+  hardened_usercopy:
+    enabled: true
+    control: kernel_config
+    name: CONFIG_HARDENED_USERCOPY
+    value: y
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 2
+    reason: Validate copies between kernel and user address spaces.
+    impact: Invalid operations are rejected and can expose driver defects.
+  fortify_source:
+    enabled: true
+    control: kernel_config
+    name: CONFIG_FORTIFY_SOURCE
+    value: y
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 2
+    reason: Add bounds checks to vulnerable kernel memory operations.
+    impact: Minimal runtime overhead; invalid operations are stopped.
+  kernel_aslr:
+    enabled: true
+    control: kernel_config
+    name: CONFIG_RANDOMIZE_BASE
+    value: y
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Compile the Ubuntu kernel with kernel-address randomization.
+    impact: Kernel addresses differ after reboot, complicating diagnostics.
+  kernel_aslr_boot_guard:
+    enabled: true
+    control: boot_guard
+    pattern: '(^|\s)nokaslr(\s|$)'
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Prevent KASLR from being disabled at boot.
+    impact: Kernel debugging cannot rely on stable addresses.
+  vmapped_kernel_stack:
+    enabled: true
+    control: kernel_config
+    name: CONFIG_VMAP_STACK
+    value: y
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Add guard pages around kernel stacks.
+    impact: Slight virtual-memory overhead.
+  cpu_vulnerability_mitigations:
+    enabled: true
+    control: boot_guard
+    pattern: >-
+      (?x)(^|\s)(
+      mitigations=off | nospectre_v1 | spectre_v2=off | nopti | pti=off |
+      l1tf=off | mds=off | tsx_async_abort=off
+      )(\s|$)
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 2
+    reason: Prevent explicit disabling of CPU vulnerability mitigations.
+    impact: Mitigations can reduce workload-dependent performance.
+  dmesg_restriction:
+    enabled: true
+    control: sysctl
+    name: kernel.dmesg_restrict
+    value: 1
+    reference: SYS.1.3.A14 (H), Absatz 1, Satz 1
+    reason: Hide kernel diagnostics from unprivileged users.
+    impact: Diagnostics require CAP_SYSLOG or administrative access.
+  kernel_pointer_restriction:
+    enabled: true
+    control: sysctl
+    name: kernel.kptr_restrict
+    value: 1
+    reference: SYS.1.3.A14 (H), Absatz 1, Satz 1
+    reason: Hide kernel pointer values from unprivileged users.
+    impact: Some low-level diagnostics require CAP_SYSLOG.
+  ptrace_restriction:
+    enabled: true
+    control: sysctl
+    name: kernel.yama.ptrace_scope
+    value: 1
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Restrict tracing to process descendants or privileged users.
+    impact: Cross-process debuggers need CAP_SYS_PTRACE.
+  minimum_mmap_address:
+    enabled: true
+    control: sysctl
+    name: vm.mmap_min_addr
+    value: 65536
+    reference: SYS.1.3.A4 (B), Absatz 1, Satz 2
+    reason: Prevent user mappings in the low address space.
+    impact: Legacy applications requiring low mappings can fail.
+  privileged_core_dumps:
+    enabled: true
+    control: sysctl
+    name: fs.suid_dumpable
+    value: 0
+    reference: SYS.1.3.A14 (H), Absatz 1, Satz 1
+    reason: Prevent memory disclosure through privileged core dumps.
+    impact: Set-ID program crashes do not produce core dumps.
+  protected_hardlinks:
+    enabled: true
+    control: sysctl
+    name: fs.protected_hardlinks
+    value: 1
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Prevent unsafe hardlink-based privilege crossing.
+    impact: Users cannot hardlink files they do not own or control.
+  protected_symlinks:
+    enabled: true
+    control: sysctl
+    name: fs.protected_symlinks
+    value: 1
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Prevent symlink races in shared sticky directories.
+    impact: Some legacy shared-directory workflows can fail.
+  protected_fifos:
+    enabled: true
+    control: sysctl
+    name: fs.protected_fifos
+    value: 2
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Prevent writes to attacker-controlled FIFOs in shared directories.
+    impact: Applies ownership checks in group-writable sticky directories too.
+  protected_regular_files:
+    enabled: true
+    control: sysctl
+    name: fs.protected_regular
+    value: 2
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Prevent unsafe creation over files in shared directories.
+    impact: Applies ownership checks in group-writable sticky directories too.
+  tty_line_discipline_autoload:
+    enabled: true
+    control: sysctl
+    name: dev.tty.ldisc_autoload
+    value: 0
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Block unprivileged autoloading of TTY line disciplines.
+    impact: Administrative module loading can be needed for uncommon devices.
+  unprivileged_bpf:
+    enabled: true
+    control: sysctl
+    name: kernel.unprivileged_bpf_disabled
+    value: 2
+    reference: SYS.1.3.A16 (H), Absatz 1, Satz 1
+    reason: >-
+      Disable unprivileged BPF while retaining administrative reversibility.
+    impact: Unprivileged BPF applications cannot operate.
+  bpf_jit_hardening:
+    enabled: true
+    control: sysctl
+    name: net.core.bpf_jit_harden
+    value: 2
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Blind BPF JIT constants for all users.
+    impact: Adds compilation overhead to BPF programs.
+  unprivileged_userfaultfd:
+    enabled: true
+    control: sysctl
+    name: vm.unprivileged_userfaultfd
+    value: 0
+    reference: SYS.1.3.A16 (H), Absatz 1, Satz 1
+    reason: Limit userfaultfd to privileged users.
+    impact: Some sandboxing and live-migration tools need privileges.
+  perf_event_restriction:
+    enabled: true
+    control: sysctl
+    name: kernel.perf_event_paranoid
+    value: 4
+    reference: SYS.1.3.A14 (H), Absatz 1, Satz 1
+    reason: Prevent unprivileged performance-event information disclosure.
+    impact: Performance analysis requires administrative privileges.
+  apparmor_user_namespace_restriction:
+    enabled: true
+    control: sysctl
+    name: kernel.apparmor_restrict_unprivileged_userns
+    value: 1
+    reference: SYS.1.3.A10 (S), Absatz 1, Sätze 1-2
+    reason: Confine unprivileged user namespaces with Ubuntu AppArmor policy.
+    impact: Applications need a compatible AppArmor profile.
+  sysrq:
+    enabled: true
+    control: sysctl
+    name: kernel.sysrq
+    value: 0
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Disable the powerful SysRq kernel control interface.
+    impact: Emergency SysRq diagnostics and recovery are unavailable.
+  disable_unprivileged_user_namespaces:
+    enabled: false
+    control: sysctl
+    name: kernel.unprivileged_userns_clone
+    value: 0
+    reference: SYS.1.3.A16 (H), Absatz 1, Satz 1
+    reason: Optional attack-surface reduction beyond AppArmor confinement.
+    impact: Breaks applications relying on unprivileged user namespaces.
+  disable_io_uring:
+    enabled: false
+    control: sysctl
+    name: kernel.io_uring_disabled
+    value: 2
+    reference: SYS.1.3.A16 (H), Absatz 1, Satz 1
+    reason: Optional removal of the io_uring syscall attack surface.
+    impact: Applications using io_uring fail or lose performance.
+  lock_kexec_loading:
+    enabled: false
+    control: sysctl
+    name: kernel.kexec_load_disabled
+    value: 1
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Optional prevention of replacing the running kernel through kexec.
+    impact: >-
+      Irreversible until reboot and incompatible with some crash workflows.
+  lock_module_loading:
+    enabled: false
+    control: sysctl
+    name: kernel.modules_disabled
+    value: 1
+    reference: SYS.1.3.A17 (H), Absatz 1, Satz 1
+    reason: Optional prevention of all further module loading and unloading.
+    impact: Irreversible until reboot; hardware and update workflows can fail.

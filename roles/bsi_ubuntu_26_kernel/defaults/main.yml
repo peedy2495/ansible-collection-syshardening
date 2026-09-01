@@ -1,0 +1,4 @@
+---
+# Override only deviations from the documented standard policy. Entries are
+# merged recursively, so group_vars and host_vars may set only enabled/value.
+bsi_ubuntu_26_kernel_overrides: {}

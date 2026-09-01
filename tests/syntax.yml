@@ -20,6 +20,14 @@
   roles:
     - role: peedy2495.syshardening.firewall
 
+- name: Check kernel implementation role syntax
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_system: Linux
+  roles:
+    - role: peedy2495.syshardening.kernel
+
 - name: Check common BSI dispatcher syntax
   hosts: all
   gather_facts: true

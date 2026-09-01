@@ -1,0 +1,94 @@
+---
+- name: Validate the BSI Ubuntu 26 kernel target
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Ubuntu'
+      - ansible_distribution_major_version == '26'
+      - bsi_ubuntu_26_kernel_overrides is mapping
+      - >-
+        bsi_ubuntu_26_kernel_overrides.keys()
+        | difference(_bsi_ubuntu_26_kernel_standard_options.keys())
+        | length == 0
+    fail_msg: >-
+      The bsi_ubuntu_26_kernel policy requires Ubuntu 26.x and known option
+      names. Detected {{ ansible_distribution }}
+      {{ ansible_distribution_version }}.
+
+- name: Validate BSI Ubuntu 26 kernel policy overrides
+  ansible.builtin.assert:
+    that:
+      - kernel_policy_override.value is mapping
+      - >-
+        kernel_policy_override.value.keys()
+        | difference(['enabled', 'value'])
+        | length == 0
+      - >-
+        kernel_policy_override.value.enabled is not defined
+        or kernel_policy_override.value.enabled is boolean
+    fail_msg: >-
+      Override {{ kernel_policy_override.key }} may contain only enabled and
+      value; enabled must be boolean.
+  loop: "{{ bsi_ubuntu_26_kernel_overrides | dict2items }}"
+  loop_control:
+    loop_var: kernel_policy_override
+    label: "{{ kernel_policy_override.key }}"
+
+- name: Initialize the effective BSI Ubuntu 26 kernel policy
+  ansible.builtin.set_fact:
+    _bsi_ubuntu_26_kernel_effective_options: >-
+      {{ _bsi_ubuntu_26_kernel_standard_options
+         | combine(bsi_ubuntu_26_kernel_overrides, recursive=true) }}
+    _bsi_ubuntu_26_kernel_sysctls: {}
+    _bsi_ubuntu_26_kernel_config: {}
+    _bsi_ubuntu_26_kernel_boot_guards: []
+
+- name: Build effective BSI sysctl policy
+  ansible.builtin.set_fact:
+    _bsi_ubuntu_26_kernel_sysctls: >-
+      {{ _bsi_ubuntu_26_kernel_sysctls
+         | combine({kernel_policy_option.value.name:
+             {'value': kernel_policy_option.value.value}}) }}
+  loop: "{{ _bsi_ubuntu_26_kernel_effective_options | dict2items }}"
+  loop_control:
+    loop_var: kernel_policy_option
+    label: "{{ kernel_policy_option.key }}"
+  when:
+    - kernel_policy_option.value.enabled
+    - kernel_policy_option.value.control == 'sysctl'
+
+- name: Build effective BSI kernel build requirements
+  ansible.builtin.set_fact:
+    _bsi_ubuntu_26_kernel_config: >-
+      {{ _bsi_ubuntu_26_kernel_config
+         | combine({kernel_policy_option.value.name:
+             kernel_policy_option.value.value}) }}
+  loop: "{{ _bsi_ubuntu_26_kernel_effective_options | dict2items }}"
+  loop_control:
+    loop_var: kernel_policy_option
+    label: "{{ kernel_policy_option.key }}"
+  when:
+    - kernel_policy_option.value.enabled
+    - kernel_policy_option.value.control == 'kernel_config'
+
+- name: Build effective BSI kernel boot guards
+  ansible.builtin.set_fact:
+    _bsi_ubuntu_26_kernel_boot_guards: >-
+      {{ _bsi_ubuntu_26_kernel_boot_guards
+         + [{'name': kernel_policy_option.key,
+             'pattern': kernel_policy_option.value.pattern}] }}
+  loop: "{{ _bsi_ubuntu_26_kernel_effective_options | dict2items }}"
+  loop_control:
+    loop_var: kernel_policy_option
+    label: "{{ kernel_policy_option.key }}"
+  when:
+    - kernel_policy_option.value.enabled
+    - kernel_policy_option.value.control == 'boot_guard'
+
+- name: Apply the BSI Ubuntu 26 kernel policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.kernel
+  vars:
+    kernel_sysctl_settings: "{{ _bsi_ubuntu_26_kernel_sysctls }}"
+    kernel_config_requirements: "{{ _bsi_ubuntu_26_kernel_config }}"
+    kernel_forbidden_boot_parameters: >-
+      {{ _bsi_ubuntu_26_kernel_boot_guards }}

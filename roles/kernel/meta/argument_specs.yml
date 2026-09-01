@@ -1,0 +1,30 @@
+---
+argument_specs:
+  main:
+    short_description: Configure and verify Linux kernel security controls
+    options:
+      kernel_sysctl_settings:
+        type: dict
+        description: >-
+          Sysctl parameters keyed by name. Each value contains value and an
+          optional state of present or absent.
+      kernel_config_requirements:
+        type: dict
+        description: >-
+          Required build-time kernel configuration values keyed by CONFIG name.
+      kernel_forbidden_boot_parameters:
+        type: list
+        elements: dict
+        options:
+          name:
+            type: str
+            required: true
+          pattern:
+            type: str
+            required: true
+      kernel_sysctl_file:
+        type: path
+      kernel_apply_runtime:
+        type: bool
+      kernel_config_file:
+        type: path

@@ -9,8 +9,10 @@ implementation from policy and orchestration.
 roles/
 ├── ssh_client/                  # reusable implementation
 ├── firewall/                    # portable UFW/firewalld implementation
+├── kernel/                      # reusable Linux kernel implementation
 ├── bsi_all_firewall/            # common BSI firewall policy
 ├── bsi_all/                     # common BSI dispatcher
+├── bsi_ubuntu_26_kernel/        # BSI/Ubuntu 26 kernel policy
 ├── bsi_ubuntu_26_ssh_client/    # BSI/Ubuntu 26 policy
 └── bsi_ubuntu/                  # distribution/version orchestration
 playbooks/
@@ -28,8 +30,9 @@ qualified collection name.
 
 ## Current scope
 
-The first platform target is the OpenSSH client on Ubuntu 26.04 LTS. The
-`bsi_ubuntu_26_ssh_client` policy implements the applicable cryptographic
+The first platform target is Ubuntu 26.04 LTS, currently covering firewall,
+kernel, and OpenSSH client policy. The `bsi_ubuntu_26_ssh_client` policy
+implements the applicable cryptographic
 recommendations from BSI TR-02102-4 version 2026-01 and technical requirements
 from BSI IT-Grundschutz OPS.1.2.5 Fernwartung. It uses strict allowlists,
 public-key-only authentication, periodic rekeying, strict host-key checking, and
@@ -50,6 +53,12 @@ The `bsi_all` dispatcher applies platform-independent BSI policies. Its current
 `bsi_all_firewall` policy implements the technical baseline derived from BSI
 IT-Grundschutz NET.3.2 with deny-by-default INPUT and FORWARD, selectable OUTPUT
 protection, dual-stack handling, stateful filtering, and security logging.
+
+The [`bsi_ubuntu_26_kernel`](roles/bsi_ubuntu_26_kernel/README.md) policy maps
+BSI SYS.1.3 kernel requirements to Ubuntu 26 runtime, build-time, and boot-time
+controls. Every standard option, including inactive high-impact controls, is
+documented with its reason and operational effect. Inventory deviations use
+the recursively merged `bsi_ubuntu_26_kernel_overrides` interface.
 
 ## Usage
 
