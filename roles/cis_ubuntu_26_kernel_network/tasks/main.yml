@@ -1,0 +1,78 @@
+---
+- name: Validate the CIS Ubuntu 26 kernel network target
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Ubuntu'
+      - ansible_distribution_major_version == '26'
+      - cis_ubuntu_26_kernel_network_overrides is mapping
+      - cis_ubuntu_26_kernel_network_sysctl_file | length > 0
+      - >-
+        cis_ubuntu_26_kernel_network_overrides.keys()
+        | difference(
+            _cis_ubuntu_26_kernel_network_standard_options.keys()
+          )
+        | length == 0
+    fail_msg: >-
+      The cis_ubuntu_26_kernel_network policy requires Ubuntu 26.x, a sysctl
+      file, and known override names. Detected {{ ansible_distribution }}
+      {{ ansible_distribution_version }}.
+
+- name: Validate CIS Ubuntu 26 kernel network overrides
+  ansible.builtin.assert:
+    that:
+      - kernel_network_override.value is mapping
+      - >-
+        kernel_network_override.value.keys()
+        | difference(['enabled', 'value'])
+        | length == 0
+      - >-
+        kernel_network_override.value.enabled is not defined
+        or kernel_network_override.value.enabled is boolean
+    fail_msg: >-
+      Override {{ kernel_network_override.key }} may contain only enabled and
+      value; enabled must be boolean.
+  loop: "{{ cis_ubuntu_26_kernel_network_overrides | dict2items }}"
+  loop_control:
+    loop_var: kernel_network_override
+    label: "{{ kernel_network_override.key }}"
+
+- name: Detect an available IPv6 sysctl tree
+  ansible.builtin.stat:
+    path: /proc/sys/net/ipv6
+  register: cis_ubuntu_26_kernel_network_ipv6
+
+- name: Initialize the effective CIS kernel network policy
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_kernel_network_effective_options: >-
+      {{ _cis_ubuntu_26_kernel_network_standard_options
+         | combine(
+             cis_ubuntu_26_kernel_network_overrides,
+             recursive=true
+           ) }}
+    _cis_ubuntu_26_kernel_network_sysctls: {}
+
+- name: Build the effective CIS kernel network sysctls
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_kernel_network_sysctls: >-
+      {{ _cis_ubuntu_26_kernel_network_sysctls
+         | combine({kernel_network_option.value.name:
+             ({'value': kernel_network_option.value.value}
+              if (kernel_network_option.value.enabled
+                  and (not kernel_network_option.value.name.startswith(
+                         'net.ipv6.')
+                       or cis_ubuntu_26_kernel_network_ipv6.stat.exists))
+              else {'state': 'absent'})}) }}
+  loop: >-
+    {{ _cis_ubuntu_26_kernel_network_effective_options | dict2items }}
+  loop_control:
+    loop_var: kernel_network_option
+    label: "{{ kernel_network_option.key }}"
+
+- name: Apply the CIS Ubuntu 26 kernel network policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.kernel
+  vars:
+    kernel_sysctl_settings: >-
+      {{ _cis_ubuntu_26_kernel_network_sysctls }}
+    kernel_sysctl_file: >-
+      {{ cis_ubuntu_26_kernel_network_sysctl_file }}

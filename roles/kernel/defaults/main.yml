@@ -9,6 +9,9 @@ kernel_config_requirements: {}
 # Named regular expressions which must not occur in /proc/cmdline.
 kernel_forbidden_boot_parameters: []
 
+# Named regular expressions which must occur in the running /proc/cmdline.
+kernel_required_boot_parameters: []
+
 kernel_sysctl_file: /etc/sysctl.d/60-ansible-kernel.conf
 kernel_apply_runtime: true
 kernel_config_file: "/boot/config-{{ ansible_kernel }}"

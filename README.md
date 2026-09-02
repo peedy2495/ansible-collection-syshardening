@@ -10,14 +10,20 @@ roles/
 ├── ssh_client/                  # reusable implementation
 ├── firewall/                    # portable UFW/firewalld implementation
 ├── kernel/                      # reusable Linux kernel implementation
+├── kernel_module/               # reusable kernel-module implementation
+├── core_dump/                   # reusable core-dump implementation
 ├── bsi_all_firewall/            # common BSI firewall policy
 ├── bsi_all/                     # common BSI dispatcher
 ├── bsi_ubuntu_26_kernel/        # BSI/Ubuntu 26 kernel policy
+├── cis_ubuntu_26_kernel_network/ # CIS/Ubuntu 26 network sysctls
+├── cis_ubuntu_26_kernel_additional/ # remaining CIS kernel controls
+├── ubuntu_26_kernel_hardening/  # combined BSI/CIS dispatcher
 ├── bsi_ubuntu_26_ssh_client/    # BSI/Ubuntu 26 policy
 └── bsi_ubuntu/                  # distribution/version orchestration
 playbooks/
 ├── bsi_all.yml                  # common BSI entry point
 ├── bsi_ubuntu.yml               # Ubuntu BSI entry point
+├── ubuntu_26_kernel_hardening.yml  # BSI/CIS kernel entry point
 └── examples/                    # guarded deployment examples
 ```
 
@@ -60,6 +66,16 @@ controls. Every standard option, including inactive high-impact controls, is
 documented with its reason and operational effect. Inventory deviations use
 the recursively merged `bsi_ubuntu_26_kernel_overrides` interface.
 
+The complementary
+[`cis_ubuntu_26_kernel_network`](roles/cis_ubuntu_26_kernel_network/README.md)
+policy implements CIS Ubuntu Linux 26.04 LTS Benchmark v1.0.0 section 3.3. The
+[`cis_ubuntu_26_kernel_additional`](roles/cis_ubuntu_26_kernel_additional/README.md)
+policy adds kernel-module availability, AppArmor boot activation, and core-file
+limits that are not already owned by the BSI or CIS network policy. The
+[`ubuntu_26_kernel_hardening`](roles/ubuntu_26_kernel_hardening/README.md)
+orchestration applies all three policy roles while retaining separate policy
+values, override namespaces, and managed files.
+
 ## Usage
 
 Apply the currently implemented BSI Ubuntu scope through orchestration:
@@ -76,6 +92,13 @@ The same orchestration is available as a collection playbook:
 
 ```bash
 ansible-playbook -i inventory peedy2495.syshardening.bsi_ubuntu
+```
+
+Apply the complementary BSI and CIS Ubuntu 26 kernel policies together with:
+
+```bash
+ansible-playbook -i inventory \
+  peedy2495.syshardening.ubuntu_26_kernel_hardening
 ```
 
 Guarded examples for the standard and increased BSI firewall protection levels

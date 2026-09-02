@@ -1,0 +1,5 @@
+# Managed by Ansible collection role peedy2495.syshardening.core_dump
+[Coredump]
+{% for setting in core_dump_systemd_settings | dict2items | sort(attribute='key') %}
+{{ setting.key }}={{ setting.value }}
+{% endfor %}

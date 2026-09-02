@@ -1,0 +1,26 @@
+---
+argument_specs:
+  main:
+    short_description: Manage Linux core dump policy files
+    options:
+      core_dump_limits_state:
+        type: str
+        choices:
+          - unchanged
+          - present
+          - absent
+      core_dump_systemd_state:
+        type: str
+        choices:
+          - unchanged
+          - present
+          - absent
+      core_dump_limits_file:
+        type: path
+      core_dump_systemd_file:
+        type: path
+      core_dump_limits:
+        type: list
+        elements: dict
+      core_dump_systemd_settings:
+        type: dict

@@ -5,6 +5,10 @@ kernel requirements from BSI IT-Grundschutz SYS.1.3, Edition 2023, into Ubuntu
 26.04 controls. It delegates sysctl configuration and kernel verification to
 the reusable `kernel` implementation role.
 
+SYS.1.3 does not specify concrete IP-stack sysctls. Use the complementary
+`cis_ubuntu_26_kernel_network` policy for those controls, or apply both through
+the `ubuntu_26_kernel_hardening` orchestration role.
+
 BSI SYS.1.3.A4 explicitly requires ASLR and DEP/NX and prohibits disabling
 kernel and library protections. SYS.1.3.A10, A14, A16, and A17 describe
 additional confinement, information hiding, syscall reduction, memory
@@ -68,8 +72,10 @@ bsi_ubuntu_26_kernel_overrides:
 ```
 
 Changing `value` retains the standard enabled state. Setting `enabled: false`
-stops the policy from managing or verifying that option. Enabling the module or
-`kexec` loading locks is irreversible until reboot and requires prior testing.
+removes a previously managed persistent sysctl entry and then leaves the option
+unmanaged; build and boot checks are no longer verified. Runtime values are not
+actively relaxed. Enabling the module or `kexec` loading locks is irreversible
+until reboot and requires prior testing.
 
 Build-time options are verified in `/boot/config-{{ ansible_kernel }}`. Forbidden
 boot flags are checked against the running `/proc/cmdline`; this prevents a

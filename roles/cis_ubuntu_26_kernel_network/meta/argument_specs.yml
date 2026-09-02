@@ -1,0 +1,9 @@
+---
+argument_specs:
+  main:
+    short_description: Apply CIS Ubuntu 26 network kernel parameters
+    options:
+      cis_ubuntu_26_kernel_network_overrides:
+        type: dict
+      cis_ubuntu_26_kernel_network_sysctl_file:
+        type: path

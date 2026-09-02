@@ -1,0 +1,140 @@
+---
+_cis_ubuntu_26_kernel_additional_policy:
+  name: CIS Ubuntu Linux 26.04 LTS Benchmark
+  version: 1.0.0
+  source: https://www.cisecurity.org/benchmark/ubuntu_linux
+
+# Kernel-related CIS recommendations not already implemented by
+# bsi_ubuntu_26_kernel or cis_ubuntu_26_kernel_network. Every standard value is
+# represented, including inactive Level 2 controls.
+_cis_ubuntu_26_kernel_additional_standard_options:
+  cramfs_module:
+    enabled: true
+    kind: module
+    module: cramfs
+    level: 1
+    reference: CIS 1.1.1.1
+    reason: Remove support for the legacy cramfs filesystem attack surface.
+    impact: Existing cramfs media cannot be mounted.
+  freevxfs_module:
+    enabled: true
+    kind: module
+    module: freevxfs
+    level: 1
+    reference: CIS 1.1.1.2
+    reason: Remove support for the unused freevxfs filesystem.
+    impact: Veritas VxFS media cannot be mounted through this module.
+  hfs_module:
+    enabled: true
+    kind: module
+    module: hfs
+    level: 1
+    reference: CIS 1.1.1.3
+    reason: Remove support for the legacy Apple HFS filesystem.
+    impact: HFS media cannot be mounted.
+  hfsplus_module:
+    enabled: true
+    kind: module
+    module: hfsplus
+    level: 1
+    reference: CIS 1.1.1.4
+    reason: Remove unnecessary HFS+ filesystem parser exposure.
+    impact: HFS+ media cannot be mounted.
+  jffs2_module:
+    enabled: true
+    kind: module
+    module: jffs2
+    level: 1
+    reference: CIS 1.1.1.5
+    reason: Remove an embedded flash filesystem unused on standard servers.
+    impact: JFFS2 volumes cannot be mounted.
+  overlay_filesystem_module:
+    enabled: true
+    kind: module
+    module: overlay
+    level: 2
+    reference: CIS 1.1.1.6
+    reason: Remove the overlay filesystem when layered filesystems are unused.
+    impact: Docker and other container runtimes using overlayfs stop working.
+  squashfs_module:
+    enabled: true
+    kind: module
+    module: squashfs
+    level: 2
+    reference: CIS 1.1.1.7
+    reason: Remove the read-only compressed filesystem parser when unused.
+    impact: Snap packages and squashfs images may no longer work.
+  udf_module:
+    enabled: true
+    kind: module
+    module: udf
+    level: 2
+    reference: CIS 1.1.1.8
+    reason: Remove the optical-media UDF filesystem parser when unused.
+    impact: UDF optical media and images cannot be mounted.
+  usb_storage_module:
+    enabled: true
+    kind: module
+    module: usb_storage
+    level: 1
+    reference: CIS 1.1.1.9
+    reason: Prevent unapproved removable USB mass-storage use.
+    impact: USB storage devices are unavailable.
+  dccp_module:
+    enabled: true
+    kind: module
+    module: dccp
+    level: 2
+    reference: CIS 3.2.1
+    reason: Remove the unused DCCP network protocol attack surface.
+    impact: Applications requiring DCCP cannot communicate.
+  tipc_module:
+    enabled: true
+    kind: module
+    module: tipc
+    level: 2
+    reference: CIS 3.2.2
+    reason: Remove the unused TIPC cluster protocol attack surface.
+    impact: TIPC-based cluster applications cannot communicate.
+  rds_module:
+    enabled: true
+    kind: module
+    module: rds
+    level: 2
+    reference: CIS 3.2.3
+    reason: Remove the unused RDS protocol attack surface.
+    impact: Applications requiring RDS cannot communicate.
+  sctp_module:
+    enabled: true
+    kind: module
+    module: sctp
+    level: 2
+    reference: CIS 3.2.4
+    reason: Remove SCTP when no explicitly approved service requires it.
+    impact: SCTP services and container workloads require an exception.
+  apparmor_boot_activation:
+    enabled: true
+    kind: boot_parameters
+    level: 1
+    reference: CIS 1.3.1.2
+    reason: Ensure AppArmor cannot be bypassed by omitting its boot activation.
+    impact: >-
+      A bootloader update and reboot are required if parameters are absent.
+    parameters:
+      - name: apparmor=1
+        pattern: '(^|\s)apparmor=1(\s|$)'
+      - name: security=apparmor
+        pattern: '(^|\s)security=apparmor(\s|$)'
+  core_file_size:
+    enabled: true
+    kind: core_limit
+    level: 1
+    reference: CIS 1.5.4
+    reason: >-
+      Prevent process memory from being written to unrestricted core files.
+    impact: Conventional core-file debugging is unavailable.
+    limits:
+      - domain: '*'
+        type: hard
+        item: core
+        value: 0

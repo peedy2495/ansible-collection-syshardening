@@ -1,16 +1,25 @@
 # Collection playbooks
 
-The collection provides two deployment entry points:
+The collection provides three deployment entry points:
 
 - `peedy2495.syshardening.bsi_all` applies platform-independent BSI policies;
 - `peedy2495.syshardening.bsi_ubuntu` additionally selects the supported Ubuntu
-  version policies.
+  version policies;
+- `peedy2495.syshardening.ubuntu_26_kernel_hardening` combines the BSI Ubuntu
+  26 kernel policy with CIS Ubuntu 26 network and additional kernel controls.
 
 After installing or building the collection, run an entry point by its fully
 qualified collection name:
 
 ```bash
 ansible-playbook -i inventory peedy2495.syshardening.bsi_ubuntu
+```
+
+For the complementary kernel policies:
+
+```bash
+ansible-playbook -i inventory \
+  peedy2495.syshardening.ubuntu_26_kernel_hardening
 ```
 
 ## Firewall examples

@@ -1,0 +1,10 @@
+---
+# Module names mapped to state: disabled or available. Empty defaults are a
+# no-op. "available" removes this role's prohibition but does not load a module.
+kernel_module_settings: {}
+
+# Role-owned modprobe policy file.
+kernel_module_config_file: /etc/modprobe.d/60-ansible-kernel-modules.conf
+
+# Unload modules selected as disabled when they are currently loaded.
+kernel_module_unload_disabled: true

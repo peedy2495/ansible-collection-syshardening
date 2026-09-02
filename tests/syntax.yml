@@ -28,6 +28,38 @@
   roles:
     - role: peedy2495.syshardening.kernel
 
+- name: Check kernel module implementation role syntax
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_system: Linux
+  roles:
+    - role: peedy2495.syshardening.kernel_module
+
+- name: Check core dump implementation role syntax
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: peedy2495.syshardening.core_dump
+
+- name: Check CIS Ubuntu 26 kernel network policy syntax
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: peedy2495.syshardening.cis_ubuntu_26_kernel_network
+
+- name: Check additional CIS Ubuntu 26 kernel policy syntax
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: peedy2495.syshardening.cis_ubuntu_26_kernel_additional
+
+- name: Check combined Ubuntu 26 kernel hardening syntax
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: peedy2495.syshardening.ubuntu_26_kernel_hardening
+
 - name: Check common BSI dispatcher syntax
   hosts: all
   gather_facts: true

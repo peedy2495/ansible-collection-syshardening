@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: cis_ubuntu_26_kernel_network
+  namespace: peedy2495
+  author: peedy2495
+  description: Apply CIS Ubuntu 26 network kernel policy.
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - all
+  galaxy_tags:
+    - cis
+    - ubuntu
+    - kernel
+    - networking
+    - security
+dependencies: []

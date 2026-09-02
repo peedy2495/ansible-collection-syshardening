@@ -16,6 +16,10 @@ kernel_config_requirements:
 kernel_forbidden_boot_parameters:
   - name: Disable ASLR
     pattern: '(^|\s)nokaslr(\s|$)'
+
+kernel_required_boot_parameters:
+  - name: AppArmor enabled
+    pattern: '(^|\s)apparmor=1(\s|$)'
 ```
 
 ## Public variables
@@ -26,6 +30,8 @@ kernel_forbidden_boot_parameters:
   kernel configuration.
 - `kernel_forbidden_boot_parameters`: named regular expressions which must not
   match `/proc/cmdline`.
+- `kernel_required_boot_parameters`: named regular expressions which must match
+  `/proc/cmdline`.
 - `kernel_sysctl_file`: persistent configuration file; defaults to
   `/etc/sysctl.d/60-ansible-kernel.conf`.
 - `kernel_apply_runtime`: apply values to the running kernel; defaults to

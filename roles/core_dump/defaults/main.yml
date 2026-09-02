@@ -1,0 +1,13 @@
+---
+# Each managed part is unchanged, present, or absent. Empty defaults are no-op.
+core_dump_limits_state: unchanged
+core_dump_systemd_state: unchanged
+
+core_dump_limits_file: /etc/security/limits.d/60-ansible-core-dumps.conf
+core_dump_systemd_file: /etc/systemd/coredump.conf.d/60-ansible.conf
+
+# Portable limits(5) entries with domain, type, item, and value.
+core_dump_limits: []
+
+# Keys in the systemd-coredump [Coredump] section.
+core_dump_systemd_settings: {}

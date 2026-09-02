@@ -1,0 +1,4 @@
+# Managed by Ansible collection role peedy2495.syshardening.core_dump
+{% for limit in core_dump_limits %}
+{{ limit.domain }} {{ limit.type }} {{ limit.item }} {{ limit.value }}
+{% endfor %}

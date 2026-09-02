@@ -1,0 +1,7 @@
+---
+- name: Apply complementary BSI and CIS Ubuntu 26 kernel policies
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: peedy2495.syshardening.ubuntu_26_kernel_hardening

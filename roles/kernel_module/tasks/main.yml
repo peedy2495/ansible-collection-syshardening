@@ -1,0 +1,71 @@
+---
+- name: Validate kernel module role input
+  ansible.builtin.assert:
+    that:
+      - ansible_system is defined
+      - ansible_system == 'Linux'
+      - kernel_module_settings is mapping
+      - kernel_module_config_file | length > 0
+      - kernel_module_unload_disabled is boolean
+    fail_msg: >-
+      The kernel_module role requires Linux facts, safe module definitions,
+      and states of disabled or available.
+
+- name: Validate kernel module definition types
+  ansible.builtin.assert:
+    that:
+      - kernel_module_entry.key is match('^[A-Za-z0-9_]+$')
+      - kernel_module_entry.value is mapping
+    fail_msg: >-
+      Kernel module names may contain only letters, numbers, and underscores;
+      every module definition must be a mapping.
+  loop: "{{ kernel_module_settings | dict2items }}"
+  loop_control:
+    loop_var: kernel_module_entry
+    label: "{{ kernel_module_entry.key }}"
+
+- name: Validate kernel module definition values
+  ansible.builtin.assert:
+    that:
+      - >-
+        kernel_module_entry.value.keys()
+        | difference(['state'])
+        | length == 0
+      - kernel_module_entry.value.state in ['disabled', 'available']
+    fail_msg: >-
+      Every kernel module definition accepts only state disabled or available.
+  loop: "{{ kernel_module_settings | dict2items }}"
+  loop_control:
+    loop_var: kernel_module_entry
+    label: "{{ kernel_module_entry.key }}"
+
+- name: Ensure the modprobe configuration directory exists
+  ansible.builtin.file:
+    path: "{{ kernel_module_config_file | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: kernel_module_settings | length > 0
+
+- name: Configure persistent kernel module availability
+  ansible.builtin.template:
+    src: modules.conf.j2
+    dest: "{{ kernel_module_config_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: kernel_module_settings | length > 0
+
+- name: Unload disabled kernel modules
+  community.general.modprobe:
+    name: "{{ kernel_module_entry.key }}"
+    state: absent
+  loop: >-
+    {{ kernel_module_settings | dict2items
+       | selectattr('value.state', 'equalto', 'disabled')
+       | list }}
+  loop_control:
+    loop_var: kernel_module_entry
+    label: "{{ kernel_module_entry.key }}"
+  when: kernel_module_unload_disabled

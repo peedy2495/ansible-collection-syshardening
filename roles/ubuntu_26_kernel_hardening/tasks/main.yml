@@ -1,0 +1,22 @@
+---
+- name: Validate the Ubuntu 26 kernel hardening target
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Ubuntu'
+      - ansible_distribution_major_version == '26'
+    fail_msg: >-
+      The ubuntu_26_kernel_hardening orchestration applies only to Ubuntu
+      26.x; detected {{ ansible_distribution }}
+      {{ ansible_distribution_version }}.
+
+- name: Apply the BSI Ubuntu 26 kernel policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.bsi_ubuntu_26_kernel
+
+- name: Apply the complementary CIS Ubuntu 26 kernel network policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.cis_ubuntu_26_kernel_network
+
+- name: Apply the additional CIS Ubuntu 26 kernel policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.cis_ubuntu_26_kernel_additional

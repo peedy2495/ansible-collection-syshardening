@@ -1,0 +1,11 @@
+---
+argument_specs:
+  main:
+    short_description: Manage Linux kernel module availability
+    options:
+      kernel_module_settings:
+        type: dict
+      kernel_module_config_file:
+        type: path
+      kernel_module_unload_disabled:
+        type: bool

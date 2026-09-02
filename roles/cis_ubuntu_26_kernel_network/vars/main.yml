@@ -1,0 +1,171 @@
+---
+_cis_ubuntu_26_kernel_network_policy:
+  name: CIS Ubuntu Linux 26.04 LTS Benchmark
+  version: 1.0.0
+  section: 3.3 Configure Network Kernel Parameters
+  source: https://www.cisecurity.org/benchmark/ubuntu_linux
+
+# CIS Ubuntu Linux 26.04 LTS Benchmark v1.0.0, section 3.3. Every
+# recommendation is represented explicitly with its operational impact.
+_cis_ubuntu_26_kernel_network_standard_options:
+  ipv4_forwarding:
+    enabled: true
+    name: net.ipv4.ip_forward
+    value: 0
+    reference: CIS 3.3.1
+    reason: Prevent the host from routing IPv4 traffic unintentionally.
+    impact: Routers and IPv4 container networking require an exception.
+  ipv6_forwarding:
+    enabled: true
+    name: net.ipv6.conf.all.forwarding
+    value: 0
+    reference: CIS 3.3.1
+    reason: Prevent the host from routing IPv6 traffic unintentionally.
+    impact: IPv6 routers and IPv6 container networking require an exception.
+  ipv4_send_redirects_all:
+    enabled: true
+    name: net.ipv4.conf.all.send_redirects
+    value: 0
+    reference: CIS 3.3.2
+    reason: Prevent emission of ICMP redirects on existing interfaces.
+    impact: Hosts intentionally acting as IPv4 routers may need redirects.
+  ipv4_send_redirects_default:
+    enabled: true
+    name: net.ipv4.conf.default.send_redirects
+    value: 0
+    reference: CIS 3.3.2
+    reason: Prevent emission of ICMP redirects on future interfaces.
+    impact: Hosts intentionally acting as IPv4 routers may need redirects.
+  ipv4_ignore_bogus_icmp_errors:
+    enabled: true
+    name: net.ipv4.icmp_ignore_bogus_error_responses
+    value: 1
+    reference: CIS 3.3.3
+    reason: Ignore malformed ICMP error responses.
+    impact: Invalid ICMP diagnostics are discarded.
+  ipv4_ignore_broadcast_icmp:
+    enabled: true
+    name: net.ipv4.icmp_echo_ignore_broadcasts
+    value: 1
+    reference: CIS 3.3.4
+    reason: Prevent broadcast ICMP amplification responses.
+    impact: Broadcast-based reachability tests receive no response.
+  ipv4_accept_redirects_all:
+    enabled: true
+    name: net.ipv4.conf.all.accept_redirects
+    value: 0
+    reference: CIS 3.3.5
+    reason: Reject IPv4 ICMP route changes on existing interfaces.
+    impact: Routes must be managed without ICMP redirects.
+  ipv4_accept_redirects_default:
+    enabled: true
+    name: net.ipv4.conf.default.accept_redirects
+    value: 0
+    reference: CIS 3.3.5
+    reason: Reject IPv4 ICMP route changes on future interfaces.
+    impact: Routes must be managed without ICMP redirects.
+  ipv6_accept_redirects_all:
+    enabled: true
+    name: net.ipv6.conf.all.accept_redirects
+    value: 0
+    reference: CIS 3.3.5
+    reason: Reject IPv6 redirect-based route changes on existing interfaces.
+    impact: IPv6 routes must be managed without redirects.
+  ipv6_accept_redirects_default:
+    enabled: true
+    name: net.ipv6.conf.default.accept_redirects
+    value: 0
+    reference: CIS 3.3.5
+    reason: Reject IPv6 redirect-based route changes on future interfaces.
+    impact: IPv6 routes must be managed without redirects.
+  ipv4_secure_redirects_all:
+    enabled: true
+    name: net.ipv4.conf.all.secure_redirects
+    value: 0
+    reference: CIS 3.3.6
+    reason: Reject even gateway-listed ICMP redirects on existing interfaces.
+    impact: Dynamic route correction through secure redirects is unavailable.
+  ipv4_secure_redirects_default:
+    enabled: true
+    name: net.ipv4.conf.default.secure_redirects
+    value: 0
+    reference: CIS 3.3.6
+    reason: Reject even gateway-listed ICMP redirects on future interfaces.
+    impact: Dynamic route correction through secure redirects is unavailable.
+  ipv4_reverse_path_filter_all:
+    enabled: true
+    name: net.ipv4.conf.all.rp_filter
+    value: 1
+    reference: CIS 3.3.7
+    reason: Drop packets whose source is unreachable through the ingress path.
+    impact: Strict filtering can break asymmetric or policy-based routing.
+  ipv4_reverse_path_filter_default:
+    enabled: true
+    name: net.ipv4.conf.default.rp_filter
+    value: 1
+    reference: CIS 3.3.7
+    reason: Apply strict source validation to future interfaces.
+    impact: Strict filtering can break asymmetric or policy-based routing.
+  ipv4_accept_source_route_all:
+    enabled: true
+    name: net.ipv4.conf.all.accept_source_route
+    value: 0
+    reference: CIS 3.3.8
+    reason: Prevent senders from selecting IPv4 packet routes.
+    impact: IPv4 source-routed diagnostics are unavailable.
+  ipv4_accept_source_route_default:
+    enabled: true
+    name: net.ipv4.conf.default.accept_source_route
+    value: 0
+    reference: CIS 3.3.8
+    reason: Reject source routing on future IPv4 interfaces.
+    impact: IPv4 source-routed diagnostics are unavailable.
+  ipv6_accept_source_route_all:
+    enabled: true
+    name: net.ipv6.conf.all.accept_source_route
+    value: 0
+    reference: CIS 3.3.8
+    reason: Prevent senders from selecting IPv6 packet routes.
+    impact: IPv6 source-routing use cases require an exception.
+  ipv6_accept_source_route_default:
+    enabled: true
+    name: net.ipv6.conf.default.accept_source_route
+    value: 0
+    reference: CIS 3.3.8
+    reason: Reject source routing on future IPv6 interfaces.
+    impact: IPv6 source-routing use cases require an exception.
+  ipv4_log_martians_all:
+    enabled: true
+    name: net.ipv4.conf.all.log_martians
+    value: 1
+    reference: CIS 3.3.9
+    reason: Log packets with impossible or invalid source addresses.
+    impact: Spoofed or misrouted traffic can increase kernel log volume.
+  ipv4_log_martians_default:
+    enabled: true
+    name: net.ipv4.conf.default.log_martians
+    value: 1
+    reference: CIS 3.3.9
+    reason: Log suspicious packets on future IPv4 interfaces.
+    impact: Spoofed or misrouted traffic can increase kernel log volume.
+  ipv4_tcp_syncookies:
+    enabled: true
+    name: net.ipv4.tcp_syncookies
+    value: 1
+    reference: CIS 3.3.10
+    reason: Preserve TCP service availability during SYN queue exhaustion.
+    impact: SYN cookies can reduce optional TCP negotiation information.
+  ipv6_accept_ra_all:
+    enabled: true
+    name: net.ipv6.conf.all.accept_ra
+    value: 0
+    reference: CIS 3.3.11
+    reason: Reject unsolicited IPv6 router configuration on existing links.
+    impact: SLAAC hosts must use trusted network configuration instead.
+  ipv6_accept_ra_default:
+    enabled: true
+    name: net.ipv6.conf.default.accept_ra
+    value: 0
+    reference: CIS 3.3.11
+    reason: Reject IPv6 router advertisements on future interfaces.
+    impact: SLAAC hosts must use trusted network configuration instead.

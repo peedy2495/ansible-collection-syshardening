@@ -53,7 +53,9 @@
   ansible.builtin.slurp:
     src: /proc/cmdline
   register: kernel_command_line
-  when: kernel_forbidden_boot_parameters | length > 0
+  when: >-
+    kernel_forbidden_boot_parameters | length > 0
+    or kernel_required_boot_parameters | length > 0
 
 - name: Reject boot parameters which disable kernel protections
   ansible.builtin.assert:
@@ -71,6 +73,23 @@
     loop_var: kernel_boot_parameter
     label: "{{ kernel_boot_parameter.name }}"
   when: kernel_forbidden_boot_parameters | length > 0
+
+- name: Require boot parameters which enable kernel protections
+  ansible.builtin.assert:
+    that:
+      - >-
+        kernel_command_line.content
+        | b64decode
+        | regex_search(kernel_boot_parameter.pattern) is not none
+    fail_msg: >-
+      The running kernel command line does not satisfy the required setting
+      {{ kernel_boot_parameter.name }}. Configure the bootloader and reboot
+      before continuing.
+  loop: "{{ kernel_required_boot_parameters }}"
+  loop_control:
+    loop_var: kernel_boot_parameter
+    label: "{{ kernel_boot_parameter.name }}"
+  when: kernel_required_boot_parameters | length > 0
 
 - name: Configure persistent and runtime sysctl parameters
   ansible.posix.sysctl:

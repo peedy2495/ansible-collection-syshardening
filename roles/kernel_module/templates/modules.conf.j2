@@ -1,0 +1,5 @@
+# Managed by Ansible collection role peedy2495.syshardening.kernel_module
+{% for module in kernel_module_settings | dict2items | sort(attribute='key') if module.value.state == 'disabled' %}
+install {{ module.key }} /bin/false
+blacklist {{ module.key }}
+{% endfor %}

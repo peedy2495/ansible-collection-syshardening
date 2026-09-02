@@ -47,13 +47,14 @@
     _bsi_ubuntu_26_kernel_sysctls: >-
       {{ _bsi_ubuntu_26_kernel_sysctls
          | combine({kernel_policy_option.value.name:
-             {'value': kernel_policy_option.value.value}}) }}
+             ({'value': kernel_policy_option.value.value}
+              if kernel_policy_option.value.enabled
+              else {'state': 'absent'})}) }}
   loop: "{{ _bsi_ubuntu_26_kernel_effective_options | dict2items }}"
   loop_control:
     loop_var: kernel_policy_option
     label: "{{ kernel_policy_option.key }}"
   when:
-    - kernel_policy_option.value.enabled
     - kernel_policy_option.value.control == 'sysctl'
 
 - name: Build effective BSI kernel build requirements

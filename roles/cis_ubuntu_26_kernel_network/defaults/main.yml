@@ -1,0 +1,9 @@
+---
+# Override only deviations from CIS Ubuntu Linux 26.04 LTS Benchmark v1.0.0,
+# section 3.3. Entries are merged recursively with the complete policy.
+cis_ubuntu_26_kernel_network_overrides: {}
+
+# Keep the complementary CIS network policy separate from the BSI kernel
+# policy's persistent sysctl file.
+cis_ubuntu_26_kernel_network_sysctl_file: >-
+  /etc/sysctl.d/61-cis-ubuntu-26-kernel-network.conf

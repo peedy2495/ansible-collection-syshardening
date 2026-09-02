@@ -8,6 +8,8 @@
       - kernel_config_requirements is mapping
       - kernel_forbidden_boot_parameters is sequence
       - kernel_forbidden_boot_parameters is not string
+      - kernel_required_boot_parameters is sequence
+      - kernel_required_boot_parameters is not string
       - kernel_sysctl_file | length > 0
       - kernel_config_file | length > 0
       - kernel_apply_runtime is boolean
@@ -62,6 +64,23 @@
     fail_msg: >-
       Every forbidden boot parameter needs only a name and a regular expression.
   loop: "{{ kernel_forbidden_boot_parameters }}"
+  loop_control:
+    loop_var: kernel_boot_parameter
+    label: "{{ kernel_boot_parameter.name | default('unnamed parameter') }}"
+
+- name: Validate required boot parameter definitions
+  ansible.builtin.assert:
+    that:
+      - kernel_boot_parameter is mapping
+      - >-
+        kernel_boot_parameter.keys()
+        | difference(['name', 'pattern'])
+        | length == 0
+      - kernel_boot_parameter.name | default('') | length > 0
+      - kernel_boot_parameter.pattern | default('') | length > 0
+    fail_msg: >-
+      Every required boot parameter needs only a name and a regular expression.
+  loop: "{{ kernel_required_boot_parameters }}"
   loop_control:
     loop_var: kernel_boot_parameter
     label: "{{ kernel_boot_parameter.name | default('unnamed parameter') }}"

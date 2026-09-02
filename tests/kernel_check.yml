@@ -38,3 +38,83 @@
             _bsi_ubuntu_26_kernel_sysctls[
               'kernel.randomize_va_space'
             ].value == 2
+
+- name: Check CIS Ubuntu 26 kernel network policy projection
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_system: Linux
+    ansible_distribution: Ubuntu
+    ansible_distribution_major_version: "26"
+    ansible_distribution_version: "26.04"
+    ansible_kernel: test
+    kernel_apply_runtime: false
+    cis_ubuntu_26_kernel_network_sysctl_file: >-
+      /tmp/ansible-syshardening-cis-kernel-network-check.conf
+    cis_ubuntu_26_kernel_network_overrides:
+      ipv4_forwarding:
+        value: 1
+      ipv4_reverse_path_filter_all:
+        enabled: false
+  roles:
+    - role: peedy2495.syshardening.cis_ubuntu_26_kernel_network
+  post_tasks:
+    - name: Verify CIS policy override and cleanup projection
+      ansible.builtin.assert:
+        that:
+          - >-
+            _cis_ubuntu_26_kernel_network_effective_options[
+              'ipv4_forwarding'
+            ].value == 1
+          - >-
+            _cis_ubuntu_26_kernel_network_sysctls[
+              'net.ipv4.ip_forward'
+            ].value == 1
+          - >-
+            _cis_ubuntu_26_kernel_network_sysctls[
+              'net.ipv4.conf.all.rp_filter'
+            ].state == 'absent'
+
+- name: Check additional CIS Ubuntu 26 kernel policy projection
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_system: Linux
+    ansible_distribution: Ubuntu
+    ansible_distribution_major_version: "26"
+    ansible_distribution_version: "26.04"
+    ansible_kernel: test
+    cis_ubuntu_26_kernel_additional_profile: level_2_server
+    cis_ubuntu_26_kernel_additional_module_config_file: >-
+      /tmp/ansible-syshardening-kernel-additional/modules.conf
+    cis_ubuntu_26_kernel_additional_limits_file: >-
+      /tmp/ansible-syshardening-kernel-additional/core-limits.conf
+    cis_ubuntu_26_kernel_additional_unload_modules: false
+    cis_ubuntu_26_kernel_additional_overrides:
+      apparmor_boot_activation:
+        enabled: false
+      overlay_filesystem_module:
+        enabled: false
+  roles:
+    - role: peedy2495.syshardening.cis_ubuntu_26_kernel_additional
+  post_tasks:
+    - name: Verify additional CIS policy profile and overrides
+      ansible.builtin.assert:
+        that:
+          - >-
+            _cis_ubuntu_26_kernel_additional_modules.cramfs.state
+            == 'disabled'
+          - >-
+            _cis_ubuntu_26_kernel_additional_modules.overlay.state
+            == 'available'
+          - >-
+            _cis_ubuntu_26_kernel_additional_modules.sctp.state
+            == 'disabled'
+          - >-
+            _cis_ubuntu_26_kernel_additional_required_boot_parameters
+            | length == 0
+          - >-
+            _cis_ubuntu_26_kernel_additional_core_limits
+            | length == 1

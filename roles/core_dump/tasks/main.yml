@@ -1,0 +1,94 @@
+---
+- name: Validate core dump role input
+  ansible.builtin.assert:
+    that:
+      - core_dump_limits_state in ['unchanged', 'present', 'absent']
+      - core_dump_systemd_state in ['unchanged', 'present', 'absent']
+      - core_dump_limits_file | length > 0
+      - core_dump_systemd_file | length > 0
+      - core_dump_limits is sequence
+      - core_dump_limits is not string
+      - core_dump_systemd_settings is mapping
+      - >-
+        core_dump_limits_state != 'present'
+        or core_dump_limits | length > 0
+      - >-
+        core_dump_systemd_state != 'present'
+        or core_dump_systemd_settings | length > 0
+      - >-
+        core_dump_systemd_settings.keys()
+        | reject('match', '^[A-Za-z][A-Za-z0-9]*$')
+        | list
+        | length == 0
+    fail_msg: >-
+      The core_dump role requires valid state values, non-empty settings for
+      present files, and systemd Coredump keys containing letters and numbers.
+
+- name: Validate core dump limit definitions
+  ansible.builtin.assert:
+    that:
+      - core_dump_limit is mapping
+      - >-
+        core_dump_limit.keys()
+        | difference(['domain', 'type', 'item', 'value'])
+        | length == 0
+      - core_dump_limit.domain | default('') | string | length > 0
+      - core_dump_limit.type | default('') in ['soft', 'hard', '-']
+      - core_dump_limit.item | default('') | string | length > 0
+      - core_dump_limit.value is defined
+    fail_msg: >-
+      Every core dump limit needs only domain, type, item, and value.
+  loop: "{{ core_dump_limits }}"
+  loop_control:
+    loop_var: core_dump_limit
+    label: >-
+      {{ core_dump_limit.domain | default('?') }}:
+      {{ core_dump_limit.item | default('?') }}
+
+- name: Ensure the limits drop-in directory exists
+  ansible.builtin.file:
+    path: "{{ core_dump_limits_file | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: core_dump_limits_state == 'present'
+
+- name: Configure core dump limits
+  ansible.builtin.template:
+    src: limits.conf.j2
+    dest: "{{ core_dump_limits_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: core_dump_limits_state == 'present'
+
+- name: Remove managed core dump limits
+  ansible.builtin.file:
+    path: "{{ core_dump_limits_file }}"
+    state: absent
+  when: core_dump_limits_state == 'absent'
+
+- name: Ensure the systemd-coredump drop-in directory exists
+  ansible.builtin.file:
+    path: "{{ core_dump_systemd_file | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: core_dump_systemd_state == 'present'
+
+- name: Configure systemd-coredump
+  ansible.builtin.template:
+    src: systemd-coredump.conf.j2
+    dest: "{{ core_dump_systemd_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: core_dump_systemd_state == 'present'
+
+- name: Remove managed systemd-coredump configuration
+  ansible.builtin.file:
+    path: "{{ core_dump_systemd_file }}"
+    state: absent
+  when: core_dump_systemd_state == 'absent'
