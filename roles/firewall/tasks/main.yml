@@ -1,4 +1,45 @@
 ---
+- name: Discover scoped additional firewall rule sets
+  ansible.builtin.set_fact:
+    firewall_additional_rule_set_names: >-
+      {{ query(
+           'ansible.builtin.varnames',
+           '^firewall_additional_rules_[A-Za-z0-9_]+$'
+         ) | sort }}
+
+- name: Validate scoped additional firewall rule sets
+  ansible.builtin.assert:
+    that:
+      - lookup('ansible.builtin.vars', firewall_additional_rule_set_name)
+        is sequence
+      - lookup('ansible.builtin.vars', firewall_additional_rule_set_name)
+        is not string
+    fail_msg: >-
+      {{ firewall_additional_rule_set_name }} must be a list of firewall rule
+      mappings.
+  loop: "{{ firewall_additional_rule_set_names }}"
+  loop_control:
+    loop_var: firewall_additional_rule_set_name
+    label: "{{ firewall_additional_rule_set_name }}"
+
+- name: Initialize combined firewall rule set
+  ansible.builtin.set_fact:
+    firewall_combined_rules: >-
+      {{ firewall_rules + firewall_additional_rules }}
+
+- name: Append scoped additional firewall rule sets
+  ansible.builtin.set_fact:
+    firewall_combined_rules: >-
+      {{ firewall_combined_rules
+         + lookup(
+             'ansible.builtin.vars',
+             firewall_additional_rule_set_name
+           ) }}
+  loop: "{{ firewall_additional_rule_set_names }}"
+  loop_control:
+    loop_var: firewall_additional_rule_set_name
+    label: "{{ firewall_additional_rule_set_name }}"
+
 - name: Initialize effective firewall rule set
   ansible.builtin.set_fact:
     firewall_effective_rules: []
@@ -8,7 +49,7 @@
     firewall_effective_rules: >-
       {{ firewall_effective_rules
          + [{'direction': 'input'} | combine(firewall_rule)] }}
-  loop: "{{ firewall_rules + firewall_additional_rules }}"
+  loop: "{{ firewall_combined_rules }}"
   loop_control:
     loop_var: firewall_rule
     label: "{{ firewall_rule.name | default('unnamed rule') }}"

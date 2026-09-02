@@ -26,3 +26,7 @@ firewall_rules: []
 
 # Inventory-owned additions, appended after firewall_rules.
 firewall_additional_rules: []
+
+# Further inventory scopes can define independently named variables matching
+# firewall_additional_rules_<scope>. The role discovers and appends all such
+# lists in variable-name order, so overlapping groups do not replace lists.

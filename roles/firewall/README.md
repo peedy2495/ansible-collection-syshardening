@@ -22,6 +22,7 @@ installed.
 | `firewall_log_configuration_changes` | `false` | Write a target syslog event after changes |
 | `firewall_rules` | `[]` | Policy-owned rules |
 | `firewall_additional_rules` | `[]` | Inventory-owned rules appended to policy rules |
+| `firewall_additional_rules_<scope>` | undefined | Independently named inventory rule lists, discovered and appended automatically |
 
 All default directions use the same values:
 
@@ -89,9 +90,53 @@ firewall_additional_rules:
     destination_port: "8080"
 ```
 
-Rule order is `firewall_rules` followed by `firewall_additional_rules`. Keep
-names stable; UFW stores them as comments. To remove a UFW rule reliably, retain
-its full definition temporarily and set `state: absent`.
+Ansible replaces a list when a more specific inventory group defines the same
+variable. For hosts belonging to several groups, give every scope an independent
+variable name. The role automatically discovers variables matching
+`firewall_additional_rules_<scope>` and appends all of them:
+
+```yaml
+# group_vars/all/firewall.yml
+firewall_additional_rules_all:
+  - name: Allow SSH from administration network
+    action: allow
+    direction: input
+    protocol: tcp
+    source: 192.0.2.0/24
+    destination_port: "22"
+```
+
+```yaml
+# group_vars/docker/firewall.yml
+firewall_additional_rules_docker:
+  - name: Allow Docker service from application network
+    action: allow
+    direction: input
+    protocol: tcp
+    source: 198.51.100.0/24
+    destination_port: "2376"
+```
+
+```yaml
+# group_vars/ipa/firewall.yml
+firewall_additional_rules_ipa:
+  - name: Allow IPA HTTPS from client network
+    action: allow
+    direction: input
+    protocol: tcp
+    source: 203.0.113.0/24
+    destination_port: "443"
+```
+
+A host in both `docker` and `ipa` receives the `all`, `docker`, and `ipa` rule
+sets. Hostvars can contribute another uniquely named list, for example
+`firewall_additional_rules_host`. Scope suffixes must contain only letters,
+digits, and underscores.
+
+Rule order is `firewall_rules`, `firewall_additional_rules`, and then the scoped
+lists sorted by variable name. Keep names stable; UFW stores them as comments.
+To remove a UFW rule reliably, retain its full definition temporarily and set
+`state: absent`.
 
 The firewalld backend requires firewalld 0.9.0 or newer for policy objects. It
 manages three reserved policy files named `ansible-input`, `ansible-output`, and

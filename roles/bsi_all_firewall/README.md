@@ -15,7 +15,9 @@ The policy enables the detected firewall and configures:
 
 `bsi_all_firewall_required_rules` contains policy-owned required services and is
 empty by default. Host and group inventory can append rules through the common
-`firewall_additional_rules` interface:
+`firewall_additional_rules` interface. For overlapping inventory groups, use
+independently named `firewall_additional_rules_<scope>` lists as documented by
+the implementation role:
 
 > **Remote-access warning:** no SSH server port is opened implicitly. Define a
 > narrowly scoped management rule before applying this role remotely, or the
@@ -30,7 +32,7 @@ bsi_all_firewall_required_rules:
     source: 192.0.2.0/24
     destination_port: "22"
 
-firewall_additional_rules:
+firewall_additional_rules_proxy:
   - name: Allow HTTPS egress through organization proxy
     action: allow
     direction: output
