@@ -2,8 +2,7 @@
 - name: Validate supported operating system family
   ansible.builtin.assert:
     that:
-      - ansible_os_family is defined
-      - ansible_os_family in firewall_backend_by_os_family
+      - ansible_facts.get('os_family', '') in firewall_backend_by_os_family
     fail_msg: >-
       The firewall backend cannot be detected. Gather facts and use a supported
       OS family: {{ firewall_backend_by_os_family.keys() | list | join(', ') }}.

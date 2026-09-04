@@ -1,0 +1,57 @@
+---
+- name: Validate the CIS Ubuntu 26 core dump target
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.get('distribution', '') == 'Ubuntu'
+      - ansible_facts.get('distribution_major_version', '') == '26'
+      - cis_ubuntu_26_core_dump_overrides is mapping
+      - >-
+        cis_ubuntu_26_core_dump_overrides.keys()
+        | difference(_cis_ubuntu_26_core_dump_standard_options.keys())
+        | length == 0
+      - cis_ubuntu_26_core_dump_limits_file | length > 0
+    fail_msg: >-
+      The CIS Ubuntu 26 core dump policy requires Ubuntu 26.x, a managed file,
+      and known overrides.
+
+- name: Validate CIS Ubuntu 26 core dump overrides
+  ansible.builtin.assert:
+    that:
+      - core_dump_override.value is mapping
+      - core_dump_override.value.keys() | difference(['enabled']) | length == 0
+      - >-
+        core_dump_override.value.enabled is not defined
+        or core_dump_override.value.enabled is boolean
+  loop: "{{ cis_ubuntu_26_core_dump_overrides | dict2items }}"
+  loop_control:
+    loop_var: core_dump_override
+    label: "{{ core_dump_override.key }}"
+
+- name: Initialize the effective CIS Ubuntu 26 core dump policy
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_core_dump_effective_options: >-
+      {{ _cis_ubuntu_26_core_dump_standard_options
+         | combine(cis_ubuntu_26_core_dump_overrides, recursive=true) }}
+    _cis_ubuntu_26_core_dump_limits: []
+
+- name: Project CIS Ubuntu 26 core dump limits
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_core_dump_limits: >-
+      {{ _cis_ubuntu_26_core_dump_limits + core_dump_option.value.limits }}
+  when: core_dump_option.value.enabled
+  loop: "{{ _cis_ubuntu_26_core_dump_effective_options | dict2items }}"
+  loop_control:
+    loop_var: core_dump_option
+    label: "{{ core_dump_option.key }}"
+
+- name: Apply the CIS Ubuntu 26 core dump policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.core_dump
+  vars:
+    core_dump_limits_state: >-
+      {{ 'present' if _cis_ubuntu_26_core_dump_limits | length > 0
+         else 'absent' }}
+    core_dump_limits_file: "{{ cis_ubuntu_26_core_dump_limits_file }}"
+    core_dump_limits: "{{ _cis_ubuntu_26_core_dump_limits }}"
+    core_dump_systemd_state: unchanged
+    core_dump_systemd_settings: {}

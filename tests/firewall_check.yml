@@ -3,7 +3,8 @@
   hosts: all
   gather_facts: false
   vars:
-    ansible_os_family: Debian
+    ansible_facts:
+      os_family: Debian
   roles:
     - role: peedy2495.syshardening.firewall
 
@@ -11,6 +12,7 @@
   hosts: all
   gather_facts: false
   vars:
-    ansible_os_family: RedHat
+    ansible_facts:
+      os_family: RedHat
   roles:
     - role: peedy2495.syshardening.firewall

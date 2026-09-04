@@ -4,8 +4,9 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_system: Linux
-    ansible_kernel: test
+    ansible_facts:
+      system: Linux
+      kernel: test
   roles:
     - role: peedy2495.syshardening.kernel
 
@@ -14,11 +15,12 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_system: Linux
-    ansible_distribution: Ubuntu
-    ansible_distribution_major_version: "26"
-    ansible_distribution_version: "26.04"
-    ansible_kernel: test
+    ansible_facts:
+      system: Linux
+      distribution: Ubuntu
+      distribution_major_version: "26"
+      distribution_version: "26.04"
+      kernel: test
     kernel_config_file: "{{ playbook_dir }}/fixtures/kernel.config"
     kernel_sysctl_file: /tmp/ansible-syshardening-kernel-check.conf
     kernel_apply_runtime: false
@@ -44,11 +46,12 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_system: Linux
-    ansible_distribution: Ubuntu
-    ansible_distribution_major_version: "26"
-    ansible_distribution_version: "26.04"
-    ansible_kernel: test
+    ansible_facts:
+      system: Linux
+      distribution: Ubuntu
+      distribution_major_version: "26"
+      distribution_version: "26.04"
+      kernel: test
     kernel_apply_runtime: false
     cis_ubuntu_26_kernel_network_sysctl_file: >-
       /tmp/ansible-syshardening-cis-kernel-network-check.conf
@@ -81,20 +84,32 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_system: Linux
-    ansible_distribution: Ubuntu
-    ansible_distribution_major_version: "26"
-    ansible_distribution_version: "26.04"
-    ansible_kernel: test
-    cis_ubuntu_26_kernel_additional_profile: level_2_server
-    cis_ubuntu_26_kernel_additional_module_config_file: >-
+    ansible_facts:
+      system: Linux
+      distribution: Ubuntu
+      distribution_major_version: "26"
+      distribution_version: "26.04"
+      kernel: test
+    cis_ubuntu_26_kernel_module_profile: level_2_server
+    cis_ubuntu_26_kernel_module_config_file: >-
       /tmp/ansible-syshardening-kernel-additional/modules.conf
-    cis_ubuntu_26_kernel_additional_limits_file: >-
+    cis_ubuntu_26_core_dump_limits_file: >-
       /tmp/ansible-syshardening-kernel-additional/core-limits.conf
-    cis_ubuntu_26_kernel_additional_unload_modules: false
-    cis_ubuntu_26_kernel_additional_overrides:
+    cis_ubuntu_26_kernel_module_unload_disabled: false
+    cis_ubuntu_26_grub_overrides:
       apparmor_boot_activation:
         enabled: false
+    cis_ubuntu_26_apparmor_profile: level_2_server
+    cis_ubuntu_26_apparmor_overrides:
+      packages:
+        enabled: false
+      runtime_activation:
+        enabled: false
+      profiles_enabled:
+        enabled: false
+      profiles_enforcing:
+        enabled: false
+    cis_ubuntu_26_kernel_module_overrides:
       overlay_filesystem_module:
         enabled: false
   roles:
@@ -104,17 +119,23 @@
       ansible.builtin.assert:
         that:
           - >-
-            _cis_ubuntu_26_kernel_additional_modules.cramfs.state
+            _cis_ubuntu_26_kernel_module_settings.cramfs.state
             == 'disabled'
           - >-
-            _cis_ubuntu_26_kernel_additional_modules.overlay.state
+            _cis_ubuntu_26_kernel_module_settings.overlay.state
             == 'available'
           - >-
-            _cis_ubuntu_26_kernel_additional_modules.sctp.state
+            _cis_ubuntu_26_kernel_module_settings.sctp.state
             == 'disabled'
           - >-
-            _cis_ubuntu_26_kernel_additional_required_boot_parameters
+            _cis_ubuntu_26_grub_required_boot_parameters
             | length == 0
           - >-
-            _cis_ubuntu_26_kernel_additional_core_limits
+            _cis_ubuntu_26_grub_parameters
+            | length == 0
+          - >-
+            _cis_ubuntu_26_apparmor_packages
+            | length == 0
+          - >-
+            _cis_ubuntu_26_core_dump_limits
             | length == 1

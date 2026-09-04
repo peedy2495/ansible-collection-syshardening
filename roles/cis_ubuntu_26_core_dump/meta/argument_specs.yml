@@ -1,0 +1,9 @@
+---
+argument_specs:
+  main:
+    short_description: Apply the CIS Ubuntu 26 core dump policy
+    options:
+      cis_ubuntu_26_core_dump_overrides:
+        type: dict
+      cis_ubuntu_26_core_dump_limits_file:
+        type: path

@@ -1,0 +1,6 @@
+---
+cis_ubuntu_26_kernel_module_profile: level_1_server
+cis_ubuntu_26_kernel_module_overrides: {}
+cis_ubuntu_26_kernel_module_config_file: >-
+  /etc/modprobe.d/61-cis-ubuntu-26-kernel-modules.conf
+cis_ubuntu_26_kernel_module_unload_disabled: true

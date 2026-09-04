@@ -1,0 +1,38 @@
+---
+_cis_ubuntu_26_apparmor_policy:
+  name: CIS Ubuntu Linux 26.04 LTS Benchmark
+  version: 1.0.0
+  source: https://www.cisecurity.org/benchmark/ubuntu_linux
+
+_cis_ubuntu_26_apparmor_standard_options:
+  packages:
+    enabled: true
+    level: 1
+    control: packages
+    reference: CIS 1.3.1.1
+    reason: Install the supported AppArmor userspace and administration tools.
+    impact: The AppArmor packages are installed and kept present.
+    packages:
+      - apparmor
+      - apparmor-utils
+  runtime_activation:
+    enabled: true
+    level: 1
+    control: runtime
+    reference: CIS 1.3.1.2
+    reason: Keep the AppArmor service and kernel enforcement active.
+    impact: Applications are subject to their loaded AppArmor profiles.
+  profiles_enabled:
+    enabled: true
+    level: 1
+    control: profiles
+    reference: CIS 1.3.1.3
+    reason: Ensure installed profiles are not administratively disabled.
+    impact: Newly enabled profiles can restrict applications.
+  profiles_enforcing:
+    enabled: true
+    level: 2
+    control: enforce
+    reference: CIS 1.3.1.4
+    reason: Require every loaded AppArmor profile to enforce its rules.
+    impact: Profiles in complain mode make verification fail.

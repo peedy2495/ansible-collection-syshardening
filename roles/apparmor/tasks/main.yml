@@ -1,0 +1,110 @@
+---
+- name: Validate AppArmor role input
+  ansible.builtin.assert:
+    that:
+      - apparmor_packages is sequence
+      - apparmor_packages is not string
+      - apparmor_service_name | length > 0
+      - apparmor_service_state in ['unchanged', 'started', 'stopped']
+      - >-
+        apparmor_service_enablement
+        in ['unchanged', 'enabled', 'disabled']
+      - apparmor_verify_kernel_enabled is boolean
+      - apparmor_enable_disabled_profiles is boolean
+      - apparmor_require_enforce_mode is boolean
+      - apparmor_disabled_profiles_directory | length > 0
+      - apparmor_status_command is sequence
+      - apparmor_status_command is not string
+      - apparmor_status_command | length > 0
+    fail_msg: >-
+      The apparmor role requires valid package, service, verification,
+      profile, and status-command settings.
+
+- name: Install AppArmor packages
+  ansible.builtin.package:
+    name: "{{ apparmor_packages }}"
+    state: present
+  when: apparmor_packages | length > 0
+
+- name: Configure the AppArmor service
+  ansible.builtin.service:
+    name: "{{ apparmor_service_name }}"
+    state: >-
+      {{ apparmor_service_state
+         if apparmor_service_state != 'unchanged'
+         else omit }}
+    enabled: >-
+      {{ apparmor_service_enablement == 'enabled'
+         if apparmor_service_enablement != 'unchanged'
+         else omit }}
+  when:
+    - >-
+      apparmor_service_state != 'unchanged'
+      or apparmor_service_enablement != 'unchanged'
+
+- name: Check the AppArmor disabled-profile directory
+  ansible.builtin.stat:
+    path: "{{ apparmor_disabled_profiles_directory }}"
+  register: apparmor_disabled_profiles_directory_state
+  when: apparmor_enable_disabled_profiles
+
+- name: Find disabled AppArmor profile markers
+  ansible.builtin.find:
+    paths: "{{ apparmor_disabled_profiles_directory }}"
+    recurse: false
+    file_type: link
+    hidden: true
+  register: apparmor_disabled_profile_markers
+  when:
+    - apparmor_enable_disabled_profiles
+    - apparmor_disabled_profiles_directory_state.stat.isdir | default(false)
+
+- name: Enable AppArmor profiles disabled by marker files
+  ansible.builtin.file:
+    path: "{{ apparmor_disabled_profile_marker.path }}"
+    state: absent
+  loop: "{{ apparmor_disabled_profile_markers.files | default([]) }}"
+  loop_control:
+    loop_var: apparmor_disabled_profile_marker
+    label: "{{ apparmor_disabled_profile_marker.path }}"
+  notify: Reload AppArmor profiles
+
+- name: Apply changed AppArmor profile configuration before verification
+  ansible.builtin.meta: flush_handlers
+
+- name: Read the AppArmor kernel activation state
+  ansible.builtin.slurp:
+    src: /sys/module/apparmor/parameters/enabled
+  register: apparmor_kernel_enabled
+  when: apparmor_verify_kernel_enabled
+
+- name: Require AppArmor to be enabled in the running kernel
+  ansible.builtin.assert:
+    that:
+      - apparmor_kernel_enabled.content | b64decode | trim == 'Y'
+    fail_msg: >-
+      AppArmor is not enabled in the running kernel. Verify the kernel and boot
+      parameters, then reboot before continuing.
+  when: apparmor_verify_kernel_enabled
+
+- name: Read the AppArmor runtime and profile status
+  ansible.builtin.command:
+    argv: "{{ apparmor_status_command }}"
+  environment:
+    LANG: C
+    LC_ALL: C
+  register: apparmor_runtime_status
+  changed_when: false
+  when:
+    - apparmor_verify_kernel_enabled or apparmor_require_enforce_mode
+
+- name: Require all loaded AppArmor profiles to enforce
+  ansible.builtin.assert:
+    that:
+      - >-
+        apparmor_runtime_status.stdout
+        is search('(?m)^0 profiles are in complain mode\\.$')
+    fail_msg: >-
+      At least one AppArmor profile is in complain mode. The selected policy
+      requires every loaded profile to enforce its rules.
+  when: apparmor_require_enforce_mode

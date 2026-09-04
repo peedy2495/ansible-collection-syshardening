@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: grub
+  namespace: peedy2495
+  author: peedy2495
+  description: Manage policy-neutral GRUB kernel parameters.
+  min_ansible_version: "2.14"
+  platforms:
+    - name: GenericLinux
+      versions:
+        - all
+  galaxy_tags:
+    - boot
+    - grub
+    - kernel
+    - linux
+dependencies: []

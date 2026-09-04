@@ -1,0 +1,70 @@
+---
+- name: Validate the CIS Ubuntu 26 kernel module target
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.get('distribution', '') == 'Ubuntu'
+      - ansible_facts.get('distribution_major_version', '') == '26'
+      - >-
+        cis_ubuntu_26_kernel_module_profile
+        in ['level_1_server', 'level_2_server']
+      - cis_ubuntu_26_kernel_module_overrides is mapping
+      - >-
+        cis_ubuntu_26_kernel_module_overrides.keys()
+        | difference(_cis_ubuntu_26_kernel_module_standard_options.keys())
+        | length == 0
+      - cis_ubuntu_26_kernel_module_config_file | length > 0
+      - cis_ubuntu_26_kernel_module_unload_disabled is boolean
+    fail_msg: >-
+      The CIS Ubuntu 26 kernel module policy requires Ubuntu 26.x, a supported
+      profile, a managed file, and known overrides.
+
+- name: Validate CIS Ubuntu 26 kernel module overrides
+  ansible.builtin.assert:
+    that:
+      - kernel_module_override.value is mapping
+      - >-
+        kernel_module_override.value.keys()
+        | difference(['enabled'])
+        | length == 0
+      - >-
+        kernel_module_override.value.enabled is not defined
+        or kernel_module_override.value.enabled is boolean
+  loop: "{{ cis_ubuntu_26_kernel_module_overrides | dict2items }}"
+  loop_control:
+    loop_var: kernel_module_override
+    label: "{{ kernel_module_override.key }}"
+
+- name: Initialize the effective CIS Ubuntu 26 kernel module policy
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_kernel_module_profile_level: >-
+      {{ 2 if cis_ubuntu_26_kernel_module_profile == 'level_2_server' else 1 }}
+    _cis_ubuntu_26_kernel_module_effective_options: >-
+      {{ _cis_ubuntu_26_kernel_module_standard_options
+         | combine(cis_ubuntu_26_kernel_module_overrides, recursive=true) }}
+    _cis_ubuntu_26_kernel_module_settings: {}
+
+- name: Project CIS Ubuntu 26 kernel module settings
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_kernel_module_settings: >-
+      {{ _cis_ubuntu_26_kernel_module_settings
+         | combine({kernel_module_option.value.module:
+             {'state':
+               ('disabled'
+                if (kernel_module_option.value.enabled
+                    and kernel_module_option.value.level
+                        <= (_cis_ubuntu_26_kernel_module_profile_level | int))
+                else 'available')}}) }}
+  loop: "{{ _cis_ubuntu_26_kernel_module_effective_options | dict2items }}"
+  loop_control:
+    loop_var: kernel_module_option
+    label: "{{ kernel_module_option.key }}"
+
+- name: Apply the CIS Ubuntu 26 kernel module policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.kernel_module
+  vars:
+    kernel_module_settings: "{{ _cis_ubuntu_26_kernel_module_settings }}"
+    kernel_module_config_file: >-
+      {{ cis_ubuntu_26_kernel_module_config_file }}
+    kernel_module_unload_disabled: >-
+      {{ cis_ubuntu_26_kernel_module_unload_disabled }}

@@ -2,8 +2,7 @@
 - name: Validate kernel module role input
   ansible.builtin.assert:
     that:
-      - ansible_system is defined
-      - ansible_system == 'Linux'
+      - ansible_facts.get('system', '') == 'Linux'
       - kernel_module_settings is mapping
       - kernel_module_config_file | length > 0
       - kernel_module_unload_disabled is boolean

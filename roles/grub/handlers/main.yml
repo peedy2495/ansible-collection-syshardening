@@ -1,0 +1,12 @@
+---
+- name: Regenerate GRUB configuration
+  ansible.builtin.command:
+    argv: "{{ grub_update_command }}"
+  changed_when: true
+  notify: Reboot after GRUB configuration change
+
+- name: Reboot after GRUB configuration change
+  ansible.builtin.reboot:
+    msg: Reboot initiated by Ansible after a GRUB kernel parameter change
+    reboot_timeout: "{{ grub_reboot_timeout }}"
+  when: grub_reboot_on_change

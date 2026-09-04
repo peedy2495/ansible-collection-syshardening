@@ -1,0 +1,17 @@
+---
+_cis_ubuntu_26_core_dump_policy:
+  name: CIS Ubuntu Linux 26.04 LTS Benchmark
+  version: 1.0.0
+  source: https://www.cisecurity.org/benchmark/ubuntu_linux
+
+_cis_ubuntu_26_core_dump_standard_options:
+  core_file_size:
+    enabled: true
+    reference: CIS 1.5.4
+    reason: Prevent process memory from entering unrestricted core files.
+    impact: Conventional core-file debugging is unavailable.
+    limits:
+      - domain: '*'
+        type: hard
+        item: core
+        value: 0

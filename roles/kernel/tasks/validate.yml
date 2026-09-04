@@ -2,8 +2,7 @@
 - name: Validate common kernel settings
   ansible.builtin.assert:
     that:
-      - ansible_system is defined
-      - ansible_system == 'Linux'
+      - ansible_facts.get('system', '') == 'Linux'
       - kernel_sysctl_settings is mapping
       - kernel_config_requirements is mapping
       - kernel_forbidden_boot_parameters is sequence

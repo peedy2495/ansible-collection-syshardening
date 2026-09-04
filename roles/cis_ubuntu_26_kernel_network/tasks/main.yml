@@ -2,8 +2,8 @@
 - name: Validate the CIS Ubuntu 26 kernel network target
   ansible.builtin.assert:
     that:
-      - ansible_distribution == 'Ubuntu'
-      - ansible_distribution_major_version == '26'
+      - ansible_facts.get('distribution', '') == 'Ubuntu'
+      - ansible_facts.get('distribution_major_version', '') == '26'
       - cis_ubuntu_26_kernel_network_overrides is mapping
       - cis_ubuntu_26_kernel_network_sysctl_file | length > 0
       - >-
@@ -14,8 +14,9 @@
         | length == 0
     fail_msg: >-
       The cis_ubuntu_26_kernel_network policy requires Ubuntu 26.x, a sysctl
-      file, and known override names. Detected {{ ansible_distribution }}
-      {{ ansible_distribution_version }}.
+      file, and known override names. Detected
+      {{ ansible_facts.get('distribution', 'unknown') }}
+      {{ ansible_facts.get('distribution_version', 'unknown') }}.
 
 - name: Validate CIS Ubuntu 26 kernel network overrides
   ansible.builtin.assert:

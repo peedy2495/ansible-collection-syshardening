@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: apparmor
+  namespace: peedy2495
+  author: peedy2495
+  description: Configure and verify AppArmor without compliance policy.
+  min_ansible_version: "2.14"
+  platforms:
+    - name: GenericLinux
+      versions:
+        - all
+  galaxy_tags:
+    - apparmor
+    - linux
+    - security
+dependencies: []

@@ -1,0 +1,16 @@
+---
+argument_specs:
+  main:
+    short_description: Manage Linux kernel parameters in GRUB
+    options:
+      grub_kernel_parameters:
+        type: dict
+      grub_defaults_file:
+        type: path
+      grub_update_command:
+        type: list
+        elements: str
+      grub_reboot_on_change:
+        type: bool
+      grub_reboot_timeout:
+        type: int

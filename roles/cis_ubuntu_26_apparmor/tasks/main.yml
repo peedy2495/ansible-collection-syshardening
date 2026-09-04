@@ -1,0 +1,87 @@
+---
+- name: Validate the CIS Ubuntu 26 AppArmor target
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.get('distribution', '') == 'Ubuntu'
+      - ansible_facts.get('distribution_major_version', '') == '26'
+      - >-
+        cis_ubuntu_26_apparmor_profile
+        in ['level_1_server', 'level_2_server']
+      - cis_ubuntu_26_apparmor_overrides is mapping
+      - >-
+        cis_ubuntu_26_apparmor_overrides.keys()
+        | difference(_cis_ubuntu_26_apparmor_standard_options.keys())
+        | length == 0
+    fail_msg: >-
+      The CIS Ubuntu 26 AppArmor policy requires Ubuntu 26.x, a supported
+      profile, and known overrides.
+
+- name: Validate CIS Ubuntu 26 AppArmor overrides
+  ansible.builtin.assert:
+    that:
+      - apparmor_override.value is mapping
+      - apparmor_override.value.keys() | difference(['enabled']) | length == 0
+      - >-
+        apparmor_override.value.enabled is not defined
+        or apparmor_override.value.enabled is boolean
+  loop: "{{ cis_ubuntu_26_apparmor_overrides | dict2items }}"
+  loop_control:
+    loop_var: apparmor_override
+    label: "{{ apparmor_override.key }}"
+
+- name: Initialize the effective CIS Ubuntu 26 AppArmor policy
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_apparmor_profile_level: >-
+      {{ 2 if cis_ubuntu_26_apparmor_profile == 'level_2_server' else 1 }}
+    _cis_ubuntu_26_apparmor_effective_options: >-
+      {{ _cis_ubuntu_26_apparmor_standard_options
+         | combine(cis_ubuntu_26_apparmor_overrides, recursive=true) }}
+    _cis_ubuntu_26_apparmor_packages: []
+    _cis_ubuntu_26_apparmor_runtime: false
+    _cis_ubuntu_26_apparmor_profiles: false
+    _cis_ubuntu_26_apparmor_enforce: false
+
+- name: Project CIS Ubuntu 26 AppArmor settings
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_apparmor_packages: >-
+      {{ apparmor_option.value.packages
+         if apparmor_option.value.control == 'packages'
+         else _cis_ubuntu_26_apparmor_packages }}
+    _cis_ubuntu_26_apparmor_runtime: >-
+      {{ true if apparmor_option.value.control == 'runtime'
+         else _cis_ubuntu_26_apparmor_runtime }}
+    _cis_ubuntu_26_apparmor_profiles: >-
+      {{ true if apparmor_option.value.control == 'profiles'
+         else _cis_ubuntu_26_apparmor_profiles }}
+    _cis_ubuntu_26_apparmor_enforce: >-
+      {{ true if apparmor_option.value.control == 'enforce'
+         else _cis_ubuntu_26_apparmor_enforce }}
+  when:
+    - apparmor_option.value.enabled
+    - >-
+      apparmor_option.value.level
+      <= (_cis_ubuntu_26_apparmor_profile_level | int)
+  loop: "{{ _cis_ubuntu_26_apparmor_effective_options | dict2items }}"
+  loop_control:
+    loop_var: apparmor_option
+    label: "{{ apparmor_option.key }}"
+
+- name: Apply the CIS Ubuntu 26 AppArmor policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.apparmor
+  vars:
+    apparmor_packages: "{{ _cis_ubuntu_26_apparmor_packages }}"
+    apparmor_service_state: >-
+      {{ 'started'
+         if (_cis_ubuntu_26_apparmor_runtime
+             or _cis_ubuntu_26_apparmor_profiles)
+         else 'unchanged' }}
+    apparmor_service_enablement: >-
+      {{ 'enabled'
+         if (_cis_ubuntu_26_apparmor_runtime
+             or _cis_ubuntu_26_apparmor_profiles)
+         else 'unchanged' }}
+    apparmor_verify_kernel_enabled: "{{ _cis_ubuntu_26_apparmor_runtime }}"
+    apparmor_enable_disabled_profiles: >-
+      {{ _cis_ubuntu_26_apparmor_profiles }}
+    apparmor_require_enforce_mode: "{{ _cis_ubuntu_26_apparmor_enforce }}"

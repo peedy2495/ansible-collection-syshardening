@@ -7,8 +7,8 @@ policy roles:
    filesystem, build-time, and boot-time kernel controls;
 2. `cis_ubuntu_26_kernel_network` for CIS Ubuntu Linux 26.04 LTS Benchmark
    v1.0.0 section 3.3 network kernel parameters;
-3. `cis_ubuntu_26_kernel_additional` for complementary CIS kernel module,
-   AppArmor boot activation, and core-file controls.
+3. `cis_ubuntu_26_kernel_additional` as a dispatcher for the independent
+   kernel-module, GRUB, AppArmor, and core-dump policy roles.
 
 The orchestration contains no technical implementation. Inventory overrides
 retain their policy-specific namespaces:
@@ -16,13 +16,21 @@ retain their policy-specific namespaces:
 ```yaml
 bsi_ubuntu_26_kernel_overrides: {}
 cis_ubuntu_26_kernel_network_overrides: {}
-cis_ubuntu_26_kernel_additional_overrides: {}
+cis_ubuntu_26_kernel_module_overrides: {}
+cis_ubuntu_26_grub_overrides: {}
+cis_ubuntu_26_apparmor_overrides: {}
+cis_ubuntu_26_core_dump_overrides: {}
 ```
 
 Use the CIS network override interface to document router, Docker, asymmetric
-routing, or SLAAC exceptions. Use the additional CIS override interface for
+routing, or SLAAC exceptions. Use the kernel-module policy interface for
 module exceptions such as Docker's required overlayfs support. Such deviations
 can make individual CIS checks non-compliant even when operationally required.
+
+The additional CIS policy can reboot a host once when required AppArmor kernel
+parameters are missing. The reboot happens only after the managed GRUB defaults
+change and completes before runtime verification continues. Roll the policy out
+serially where simultaneous host reboots would affect availability.
 
 ## Docker hosts
 
@@ -51,7 +59,7 @@ cis_ubuntu_26_kernel_network_overrides:
   ipv4_forwarding:
     value: 1
 
-cis_ubuntu_26_kernel_additional_overrides:
+cis_ubuntu_26_kernel_module_overrides:
   overlay_filesystem_module:
     enabled: false
 ```

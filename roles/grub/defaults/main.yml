@@ -1,0 +1,9 @@
+---
+# Kernel parameter names mapped to state present/absent and an optional value.
+# Empty settings are a no-op.
+grub_kernel_parameters: {}
+
+grub_defaults_file: ""
+grub_update_command: []
+grub_reboot_on_change: false
+grub_reboot_timeout: 600

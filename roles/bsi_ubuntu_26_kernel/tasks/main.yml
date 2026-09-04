@@ -2,8 +2,8 @@
 - name: Validate the BSI Ubuntu 26 kernel target
   ansible.builtin.assert:
     that:
-      - ansible_distribution == 'Ubuntu'
-      - ansible_distribution_major_version == '26'
+      - ansible_facts.get('distribution', '') == 'Ubuntu'
+      - ansible_facts.get('distribution_major_version', '') == '26'
       - bsi_ubuntu_26_kernel_overrides is mapping
       - >-
         bsi_ubuntu_26_kernel_overrides.keys()
@@ -11,8 +11,8 @@
         | length == 0
     fail_msg: >-
       The bsi_ubuntu_26_kernel policy requires Ubuntu 26.x and known option
-      names. Detected {{ ansible_distribution }}
-      {{ ansible_distribution_version }}.
+      names. Detected {{ ansible_facts.get('distribution', 'unknown') }}
+      {{ ansible_facts.get('distribution_version', 'unknown') }}.
 
 - name: Validate BSI Ubuntu 26 kernel policy overrides
   ansible.builtin.assert:

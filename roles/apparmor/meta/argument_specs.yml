@@ -1,0 +1,33 @@
+---
+argument_specs:
+  main:
+    short_description: Configure and verify AppArmor
+    options:
+      apparmor_packages:
+        type: list
+        elements: str
+      apparmor_service_name:
+        type: str
+      apparmor_service_state:
+        type: str
+        choices:
+          - unchanged
+          - started
+          - stopped
+      apparmor_service_enablement:
+        type: str
+        choices:
+          - unchanged
+          - enabled
+          - disabled
+      apparmor_verify_kernel_enabled:
+        type: bool
+      apparmor_enable_disabled_profiles:
+        type: bool
+      apparmor_require_enforce_mode:
+        type: bool
+      apparmor_disabled_profiles_directory:
+        type: path
+      apparmor_status_command:
+        type: list
+        elements: str

@@ -1,0 +1,13 @@
+---
+# Unchanged defaults make the implementation role a no-op.
+apparmor_packages: []
+apparmor_service_name: apparmor
+apparmor_service_state: unchanged
+apparmor_service_enablement: unchanged
+
+apparmor_verify_kernel_enabled: false
+apparmor_enable_disabled_profiles: false
+apparmor_require_enforce_mode: false
+apparmor_disabled_profiles_directory: /etc/apparmor.d/disable
+apparmor_status_command:
+  - aa-status

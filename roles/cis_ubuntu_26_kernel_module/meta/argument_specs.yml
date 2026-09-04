@@ -1,0 +1,16 @@
+---
+argument_specs:
+  main:
+    short_description: Apply the CIS Ubuntu 26 kernel module policy
+    options:
+      cis_ubuntu_26_kernel_module_profile:
+        type: str
+        choices:
+          - level_1_server
+          - level_2_server
+      cis_ubuntu_26_kernel_module_overrides:
+        type: dict
+      cis_ubuntu_26_kernel_module_config_file:
+        type: path
+      cis_ubuntu_26_kernel_module_unload_disabled:
+        type: bool

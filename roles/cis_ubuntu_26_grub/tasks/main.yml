@@ -1,0 +1,74 @@
+---
+- name: Validate the CIS Ubuntu 26 GRUB target
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.get('distribution', '') == 'Ubuntu'
+      - ansible_facts.get('distribution_major_version', '') == '26'
+      - cis_ubuntu_26_grub_overrides is mapping
+      - >-
+        cis_ubuntu_26_grub_overrides.keys()
+        | difference(_cis_ubuntu_26_grub_standard_options.keys())
+        | length == 0
+      - cis_ubuntu_26_grub_defaults_file | length > 0
+      - cis_ubuntu_26_grub_update_command is sequence
+      - cis_ubuntu_26_grub_update_command is not string
+      - cis_ubuntu_26_grub_update_command | length > 0
+      - cis_ubuntu_26_grub_reboot_timeout | int > 0
+    fail_msg: >-
+      The CIS Ubuntu 26 GRUB policy requires Ubuntu 26.x, valid platform
+      commands and files, and known overrides.
+
+- name: Validate CIS Ubuntu 26 GRUB overrides
+  ansible.builtin.assert:
+    that:
+      - grub_override.value is mapping
+      - grub_override.value.keys() | difference(['enabled']) | length == 0
+      - >-
+        grub_override.value.enabled is not defined
+        or grub_override.value.enabled is boolean
+  loop: "{{ cis_ubuntu_26_grub_overrides | dict2items }}"
+  loop_control:
+    loop_var: grub_override
+    label: "{{ grub_override.key }}"
+
+- name: Initialize the effective CIS Ubuntu 26 GRUB policy
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_grub_effective_options: >-
+      {{ _cis_ubuntu_26_grub_standard_options
+         | combine(cis_ubuntu_26_grub_overrides, recursive=true) }}
+    _cis_ubuntu_26_grub_parameters: {}
+    _cis_ubuntu_26_grub_required_boot_parameters: []
+
+- name: Project CIS Ubuntu 26 GRUB settings
+  ansible.builtin.set_fact:
+    _cis_ubuntu_26_grub_parameters: >-
+      {{ _cis_ubuntu_26_grub_parameters
+         | combine(grub_option.value.parameters) }}
+    _cis_ubuntu_26_grub_required_boot_parameters: >-
+      {{ _cis_ubuntu_26_grub_required_boot_parameters
+         + grub_option.value.verification }}
+  when: grub_option.value.enabled
+  loop: "{{ _cis_ubuntu_26_grub_effective_options | dict2items }}"
+  loop_control:
+    loop_var: grub_option
+    label: "{{ grub_option.key }}"
+
+- name: Apply the CIS Ubuntu 26 GRUB policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.grub
+  vars:
+    grub_kernel_parameters: "{{ _cis_ubuntu_26_grub_parameters }}"
+    grub_defaults_file: "{{ cis_ubuntu_26_grub_defaults_file }}"
+    grub_update_command: "{{ cis_ubuntu_26_grub_update_command }}"
+    grub_reboot_on_change: true
+    grub_reboot_timeout: "{{ cis_ubuntu_26_grub_reboot_timeout }}"
+
+- name: Verify the running CIS Ubuntu 26 boot parameters
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.kernel
+  vars:
+    kernel_sysctl_settings: {}
+    kernel_config_requirements: {}
+    kernel_forbidden_boot_parameters: []
+    kernel_required_boot_parameters: >-
+      {{ _cis_ubuntu_26_grub_required_boot_parameters }}

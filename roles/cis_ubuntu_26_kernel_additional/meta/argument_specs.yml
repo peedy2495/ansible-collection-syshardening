@@ -1,18 +1,5 @@
 ---
 argument_specs:
   main:
-    short_description: Apply additional CIS Ubuntu 26 kernel controls
-    options:
-      cis_ubuntu_26_kernel_additional_profile:
-        type: str
-        choices:
-          - level_1_server
-          - level_2_server
-      cis_ubuntu_26_kernel_additional_overrides:
-        type: dict
-      cis_ubuntu_26_kernel_additional_module_config_file:
-        type: path
-      cis_ubuntu_26_kernel_additional_limits_file:
-        type: path
-      cis_ubuntu_26_kernel_additional_unload_modules:
-        type: bool
+    short_description: Dispatch additional CIS Ubuntu 26 kernel policies
+    options: {}

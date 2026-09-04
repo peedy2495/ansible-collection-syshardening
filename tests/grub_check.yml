@@ -1,0 +1,51 @@
+---
+- name: Check GRUB kernel parameter convergence
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_facts:
+      system: Linux
+    grub_defaults_file: /tmp/ansible-syshardening-grub-check
+    grub_update_command:
+      - /bin/true
+    grub_reboot_on_change: false
+    grub_kernel_parameters:
+      apparmor:
+        state: present
+        value: "1"
+      security:
+        state: present
+        value: apparmor
+  pre_tasks:
+    - name: Initialize the test GRUB defaults file
+      ansible.builtin.copy:
+        dest: "{{ grub_defaults_file }}"
+        content: |
+          GRUB_DEFAULT=0
+          GRUB_CMDLINE_LINUX="console=tty1 apparmor=0"
+        mode: "0600"
+  tasks:
+    - name: Apply the GRUB role for the first time
+      ansible.builtin.include_role:
+        name: peedy2495.syshardening.grub
+
+    - name: Read the remediated test GRUB defaults file
+      ansible.builtin.slurp:
+        src: "{{ grub_defaults_file }}"
+      register: grub_check_content
+
+    - name: Verify replacement and preservation of kernel parameters
+      ansible.builtin.assert:
+        that:
+          - >-
+            grub_check_content.content | b64decode
+            is search('GRUB_CMDLINE_LINUX="console=tty1 apparmor=1 '
+                      + 'security=apparmor"')
+          - >-
+            grub_check_content.content | b64decode
+            is not search('apparmor=0')
+
+    - name: Apply the converged GRUB role again
+      ansible.builtin.include_role:
+        name: peedy2495.syshardening.grub

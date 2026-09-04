@@ -1,0 +1,12 @@
+---
+argument_specs:
+  main:
+    short_description: Apply the CIS Ubuntu 26 AppArmor policy
+    options:
+      cis_ubuntu_26_apparmor_profile:
+        type: str
+        choices:
+          - level_1_server
+          - level_2_server
+      cis_ubuntu_26_apparmor_overrides:
+        type: dict

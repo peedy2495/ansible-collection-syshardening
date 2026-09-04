@@ -1,0 +1,105 @@
+---
+- name: Validate GRUB role input
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.get('system', '') == 'Linux'
+      - grub_kernel_parameters is mapping
+      - >-
+        grub_kernel_parameters | length == 0
+        or grub_defaults_file | length > 0
+      - grub_update_command is sequence
+      - grub_update_command is not string
+      - >-
+        grub_kernel_parameters | length == 0
+        or grub_update_command | length > 0
+      - grub_reboot_on_change is boolean
+      - grub_reboot_timeout | int > 0
+    fail_msg: >-
+      The grub role requires Linux, a parameter mapping, an update command,
+      and valid reboot settings.
+
+- name: Validate GRUB kernel parameter definitions
+  ansible.builtin.assert:
+    that:
+      - grub_parameter.key is match('^[A-Za-z0-9_.-]+$')
+      - grub_parameter.value is mapping
+      - >-
+        grub_parameter.value.keys()
+        | difference(['state', 'value'])
+        | length == 0
+      - >-
+        grub_parameter.value.state | default('present')
+        in ['present', 'absent']
+      - >-
+        grub_parameter.value.state | default('present') == 'absent'
+        or grub_parameter.value.value is defined
+      - >-
+        grub_parameter.value.value | default('') | string
+        is match('^[A-Za-z0-9_.,:/+-]*$')
+    fail_msg: >-
+      GRUB parameter names and definitions are invalid. Values must not contain
+      whitespace or quotes.
+  loop: "{{ grub_kernel_parameters | dict2items }}"
+  loop_control:
+    loop_var: grub_parameter
+    label: "{{ grub_parameter.key }}"
+
+- name: Read the GRUB defaults file
+  ansible.builtin.slurp:
+    src: "{{ grub_defaults_file }}"
+  register: grub_defaults_content
+  when: grub_kernel_parameters | length > 0
+
+- name: Extract the GRUB kernel command line
+  ansible.builtin.set_fact:
+    _grub_command_line_matches: >-
+      {{ grub_defaults_content.content
+         | b64decode
+         | regex_findall(
+             '(?m)^GRUB_CMDLINE_LINUX="([^"]*)"[ \t]*$'
+           ) }}
+  when: grub_kernel_parameters | length > 0
+
+- name: Require one supported GRUB kernel command line assignment
+  ansible.builtin.assert:
+    that:
+      - _grub_command_line_matches | length == 1
+    fail_msg: >-
+      {{ grub_defaults_file }} must contain exactly one double-quoted
+      GRUB_CMDLINE_LINUX assignment before kernel parameters can be managed.
+  when: grub_kernel_parameters | length > 0
+
+- name: Initialize the effective GRUB kernel command line
+  ansible.builtin.set_fact:
+    _grub_kernel_arguments: "{{ _grub_command_line_matches[0].split() }}"
+  when: grub_kernel_parameters | length > 0
+
+- name: Build the effective GRUB kernel command line
+  ansible.builtin.set_fact:
+    _grub_kernel_arguments: >-
+      {{ _grub_kernel_arguments
+         | reject(
+             'match',
+             '^' + (grub_parameter.key | regex_escape) + '(?:=|$)'
+           )
+         | list
+         + ([grub_parameter.key + '='
+             + (grub_parameter.value.value | string)]
+            if (grub_parameter.value.state | default('present')) == 'present'
+            else []) }}
+  loop: "{{ grub_kernel_parameters | dict2items }}"
+  loop_control:
+    loop_var: grub_parameter
+    label: "{{ grub_parameter.key }}"
+
+- name: Configure GRUB kernel parameters
+  ansible.builtin.lineinfile:
+    path: "{{ grub_defaults_file }}"
+    regexp: '^GRUB_CMDLINE_LINUX='
+    line: 'GRUB_CMDLINE_LINUX="{{ _grub_kernel_arguments | join('' '') }}"'
+    create: false
+  notify: Regenerate GRUB configuration
+  when: grub_kernel_parameters | length > 0
+
+- name: Apply changed GRUB boot configuration before continuing
+  ansible.builtin.meta: flush_handlers

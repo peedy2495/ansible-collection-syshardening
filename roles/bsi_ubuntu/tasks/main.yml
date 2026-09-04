@@ -2,12 +2,12 @@
 - name: Validate supported BSI Ubuntu platform
   ansible.builtin.assert:
     that:
-      - ansible_distribution == 'Ubuntu'
-      - ansible_distribution_major_version in ['26']
+      - ansible_facts.get('distribution', '') == 'Ubuntu'
+      - ansible_facts.get('distribution_major_version', '') in ['26']
     fail_msg: >-
       This collection currently implements BSI Ubuntu policy only for Ubuntu
-      26.x; detected {{ ansible_distribution }}
-      {{ ansible_distribution_version }}.
+      26.x; detected {{ ansible_facts.get('distribution', 'unknown') }}
+      {{ ansible_facts.get('distribution_version', 'unknown') }}.
 
 - name: Apply platform-independent BSI policies
   ansible.builtin.include_role:
@@ -16,9 +16,9 @@
 - name: Apply BSI Ubuntu 26 kernel policy
   ansible.builtin.include_role:
     name: peedy2495.syshardening.bsi_ubuntu_26_kernel
-  when: ansible_distribution_major_version == '26'
+  when: ansible_facts['distribution_major_version'] == '26'
 
 - name: Apply BSI Ubuntu 26 SSH client policy
   ansible.builtin.include_role:
     name: peedy2495.syshardening.bsi_ubuntu_26_ssh_client
-  when: ansible_distribution_major_version == '26'
+  when: ansible_facts['distribution_major_version'] == '26'

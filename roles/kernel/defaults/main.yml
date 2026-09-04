@@ -3,7 +3,7 @@
 # intentionally make the implementation role a no-op.
 kernel_sysctl_settings: {}
 
-# Expected build-time options from /boot/config-{{ ansible_kernel }}.
+# Expected build-time options from /boot/config-{{ ansible_facts['kernel'] }}.
 kernel_config_requirements: {}
 
 # Named regular expressions which must not occur in /proc/cmdline.
@@ -14,4 +14,4 @@ kernel_required_boot_parameters: []
 
 kernel_sysctl_file: /etc/sysctl.d/60-ansible-kernel.conf
 kernel_apply_runtime: true
-kernel_config_file: "/boot/config-{{ ansible_kernel }}"
+kernel_config_file: "/boot/config-{{ ansible_facts['kernel'] }}"

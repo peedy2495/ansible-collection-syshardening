@@ -1,0 +1,6 @@
+---
+cis_ubuntu_26_grub_overrides: {}
+cis_ubuntu_26_grub_defaults_file: /etc/default/grub
+cis_ubuntu_26_grub_update_command:
+  - update-grub
+cis_ubuntu_26_grub_reboot_timeout: 600

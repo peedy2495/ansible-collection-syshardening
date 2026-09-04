@@ -16,7 +16,8 @@
   hosts: all
   gather_facts: false
   vars:
-    ansible_os_family: Debian
+    ansible_facts:
+      os_family: Debian
   roles:
     - role: peedy2495.syshardening.firewall
 
@@ -24,7 +25,9 @@
   hosts: all
   gather_facts: false
   vars:
-    ansible_system: Linux
+    ansible_facts:
+      system: Linux
+      kernel: test
   roles:
     - role: peedy2495.syshardening.kernel
 
@@ -32,7 +35,8 @@
   hosts: all
   gather_facts: false
   vars:
-    ansible_system: Linux
+    ansible_facts:
+      system: Linux
   roles:
     - role: peedy2495.syshardening.kernel_module
 
@@ -41,6 +45,21 @@
   gather_facts: false
   roles:
     - role: peedy2495.syshardening.core_dump
+
+- name: Check GRUB implementation role syntax
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_facts:
+      system: Linux
+  roles:
+    - role: peedy2495.syshardening.grub
+
+- name: Check AppArmor implementation role syntax
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: peedy2495.syshardening.apparmor
 
 - name: Check CIS Ubuntu 26 kernel network policy syntax
   hosts: all
@@ -53,6 +72,15 @@
   gather_facts: true
   roles:
     - role: peedy2495.syshardening.cis_ubuntu_26_kernel_additional
+
+- name: Check CIS Ubuntu 26 component policy syntax
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: peedy2495.syshardening.cis_ubuntu_26_kernel_module
+    - role: peedy2495.syshardening.cis_ubuntu_26_grub
+    - role: peedy2495.syshardening.cis_ubuntu_26_apparmor
+    - role: peedy2495.syshardening.cis_ubuntu_26_core_dump
 
 - name: Check combined Ubuntu 26 kernel hardening syntax
   hosts: all

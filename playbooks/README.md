@@ -22,6 +22,10 @@ ansible-playbook -i inventory \
   peedy2495.syshardening.ubuntu_26_kernel_hardening
 ```
 
+This entry point can reboot a host once after adding required AppArmor kernel
+parameters to GRUB. Use inventory batching or a serial wrapper playbook for
+availability-sensitive groups.
+
 ## Firewall examples
 
 The files below `playbooks/examples/` demonstrate the BSI firewall policy for

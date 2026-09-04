@@ -1,148 +1,16 @@
 ---
-- name: Validate the additional CIS Ubuntu 26 kernel target
-  ansible.builtin.assert:
-    that:
-      - ansible_distribution == 'Ubuntu'
-      - ansible_distribution_major_version == '26'
-      - >-
-        cis_ubuntu_26_kernel_additional_profile
-        in ['level_1_server', 'level_2_server']
-      - cis_ubuntu_26_kernel_additional_overrides is mapping
-      - >-
-        cis_ubuntu_26_kernel_additional_overrides.keys()
-        | difference(
-            _cis_ubuntu_26_kernel_additional_standard_options.keys()
-          )
-        | length == 0
-      - cis_ubuntu_26_kernel_additional_module_config_file | length > 0
-      - cis_ubuntu_26_kernel_additional_limits_file | length > 0
-      - cis_ubuntu_26_kernel_additional_unload_modules is boolean
-    fail_msg: >-
-      The additional CIS kernel policy requires Ubuntu 26.x, a supported
-      server profile, valid managed file paths, and known override names.
-
-- name: Validate additional CIS Ubuntu 26 kernel overrides
-  ansible.builtin.assert:
-    that:
-      - additional_kernel_override.value is mapping
-      - >-
-        additional_kernel_override.value.keys()
-        | difference(['enabled'])
-        | length == 0
-      - >-
-        additional_kernel_override.value.enabled is not defined
-        or additional_kernel_override.value.enabled is boolean
-    fail_msg: >-
-      Override {{ additional_kernel_override.key }} may contain only the
-      boolean enabled value.
-  loop: "{{ cis_ubuntu_26_kernel_additional_overrides | dict2items }}"
-  loop_control:
-    loop_var: additional_kernel_override
-    label: "{{ additional_kernel_override.key }}"
-
-- name: Initialize the effective additional CIS kernel policy
-  ansible.builtin.set_fact:
-    _cis_ubuntu_26_kernel_additional_profile_level: >-
-      {{ 2 if cis_ubuntu_26_kernel_additional_profile == 'level_2_server'
-         else 1 }}
-    _cis_ubuntu_26_kernel_additional_effective_options: >-
-      {{ _cis_ubuntu_26_kernel_additional_standard_options
-         | combine(
-             cis_ubuntu_26_kernel_additional_overrides,
-             recursive=true
-           ) }}
-    _cis_ubuntu_26_kernel_additional_modules: {}
-    _cis_ubuntu_26_kernel_additional_required_boot_parameters: []
-    _cis_ubuntu_26_kernel_additional_core_limits: []
-
-- name: Project module controls from the additional CIS policy
-  ansible.builtin.set_fact:
-    _cis_ubuntu_26_kernel_additional_modules: >-
-      {{ _cis_ubuntu_26_kernel_additional_modules
-         | combine({additional_kernel_option.value.module:
-             {'state':
-               ('disabled'
-                if (additional_kernel_option.value.enabled
-                    and additional_kernel_option.value.level
-                        <= (_cis_ubuntu_26_kernel_additional_profile_level
-                            | int))
-                else 'available')}}) }}
-  loop: >-
-    {{ _cis_ubuntu_26_kernel_additional_effective_options
-       | dict2items
-       | selectattr('value.kind', 'equalto', 'module') }}
-  loop_control:
-    loop_var: additional_kernel_option
-    label: "{{ additional_kernel_option.key }}"
-
-- name: Project required boot parameters from the additional CIS policy
-  ansible.builtin.set_fact:
-    _cis_ubuntu_26_kernel_additional_required_boot_parameters: >-
-      {{ _cis_ubuntu_26_kernel_additional_required_boot_parameters
-         + additional_kernel_option.value.parameters }}
-  when:
-    - additional_kernel_option.value.enabled
-    - >-
-      additional_kernel_option.value.level
-      <= (_cis_ubuntu_26_kernel_additional_profile_level | int)
-  loop: >-
-    {{ _cis_ubuntu_26_kernel_additional_effective_options
-       | dict2items
-       | selectattr('value.kind', 'equalto', 'boot_parameters') }}
-  loop_control:
-    loop_var: additional_kernel_option
-    label: "{{ additional_kernel_option.key }}"
-
-- name: Project core limits from the additional CIS policy
-  ansible.builtin.set_fact:
-    _cis_ubuntu_26_kernel_additional_core_limits: >-
-      {{ _cis_ubuntu_26_kernel_additional_core_limits
-         + additional_kernel_option.value.limits }}
-  when:
-    - additional_kernel_option.value.enabled
-    - >-
-      additional_kernel_option.value.level
-      <= (_cis_ubuntu_26_kernel_additional_profile_level | int)
-  loop: >-
-    {{ _cis_ubuntu_26_kernel_additional_effective_options
-       | dict2items
-       | selectattr('value.kind', 'equalto', 'core_limit') }}
-  loop_control:
-    loop_var: additional_kernel_option
-    label: "{{ additional_kernel_option.key }}"
-
-- name: Apply the additional CIS kernel module policy
+- name: Apply the CIS Ubuntu 26 kernel module policy
   ansible.builtin.include_role:
-    name: peedy2495.syshardening.kernel_module
-  vars:
-    kernel_module_settings: >-
-      {{ _cis_ubuntu_26_kernel_additional_modules }}
-    kernel_module_config_file: >-
-      {{ cis_ubuntu_26_kernel_additional_module_config_file }}
-    kernel_module_unload_disabled: >-
-      {{ cis_ubuntu_26_kernel_additional_unload_modules }}
+    name: peedy2495.syshardening.cis_ubuntu_26_kernel_module
 
-- name: Verify the additional CIS boot parameter policy
+- name: Apply the CIS Ubuntu 26 GRUB policy
   ansible.builtin.include_role:
-    name: peedy2495.syshardening.kernel
-  vars:
-    kernel_sysctl_settings: {}
-    kernel_config_requirements: {}
-    kernel_forbidden_boot_parameters: []
-    kernel_required_boot_parameters: >-
-      {{ _cis_ubuntu_26_kernel_additional_required_boot_parameters }}
+    name: peedy2495.syshardening.cis_ubuntu_26_grub
 
-- name: Apply the additional CIS core-file limit policy
+- name: Apply the CIS Ubuntu 26 AppArmor policy
   ansible.builtin.include_role:
-    name: peedy2495.syshardening.core_dump
-  vars:
-    core_dump_limits_state: >-
-      {{ 'present'
-         if _cis_ubuntu_26_kernel_additional_core_limits | length > 0
-         else 'absent' }}
-    core_dump_limits_file: >-
-      {{ cis_ubuntu_26_kernel_additional_limits_file }}
-    core_dump_limits: >-
-      {{ _cis_ubuntu_26_kernel_additional_core_limits }}
-    core_dump_systemd_state: unchanged
-    core_dump_systemd_settings: {}
+    name: peedy2495.syshardening.cis_ubuntu_26_apparmor
+
+- name: Apply the CIS Ubuntu 26 core dump policy
+  ansible.builtin.include_role:
+    name: peedy2495.syshardening.cis_ubuntu_26_core_dump

@@ -12,11 +12,17 @@ roles/
 ├── kernel/                      # reusable Linux kernel implementation
 ├── kernel_module/               # reusable kernel-module implementation
 ├── core_dump/                   # reusable core-dump implementation
+├── grub/                        # reusable GRUB implementation
+├── apparmor/                    # reusable AppArmor implementation
 ├── bsi_all_firewall/            # common BSI firewall policy
 ├── bsi_all/                     # common BSI dispatcher
 ├── bsi_ubuntu_26_kernel/        # BSI/Ubuntu 26 kernel policy
 ├── cis_ubuntu_26_kernel_network/ # CIS/Ubuntu 26 network sysctls
-├── cis_ubuntu_26_kernel_additional/ # remaining CIS kernel controls
+├── cis_ubuntu_26_kernel_module/  # CIS/Ubuntu 26 modules
+├── cis_ubuntu_26_grub/           # CIS/Ubuntu 26 boot policy
+├── cis_ubuntu_26_apparmor/       # CIS/Ubuntu 26 AppArmor
+├── cis_ubuntu_26_core_dump/      # CIS/Ubuntu 26 core dumps
+├── cis_ubuntu_26_kernel_additional/ # CIS component dispatcher
 ├── ubuntu_26_kernel_hardening/  # combined BSI/CIS dispatcher
 ├── bsi_ubuntu_26_ssh_client/    # BSI/Ubuntu 26 policy
 └── bsi_ubuntu/                  # distribution/version orchestration
@@ -33,6 +39,10 @@ playbooks/
 
 Role names use lowercase letters and underscores. All role calls use their fully
 qualified collection name.
+
+The repository's `ansible.cfg` disables legacy top-level fact injection. Roles
+access gathered host data through `ansible_facts`, matching the behavior that
+will become mandatory in future ansible-core releases.
 
 ## Current scope
 
@@ -70,8 +80,9 @@ The complementary
 [`cis_ubuntu_26_kernel_network`](roles/cis_ubuntu_26_kernel_network/README.md)
 policy implements CIS Ubuntu Linux 26.04 LTS Benchmark v1.0.0 section 3.3. The
 [`cis_ubuntu_26_kernel_additional`](roles/cis_ubuntu_26_kernel_additional/README.md)
-policy adds kernel-module availability, AppArmor boot activation, and core-file
-limits that are not already owned by the BSI or CIS network policy. The
+dispatcher composes separate kernel-module, GRUB, AppArmor, and core-dump
+policies that are not already owned by BSI or CIS networking. The AppArmor
+policy owns its Ubuntu package names. The
 [`ubuntu_26_kernel_hardening`](roles/ubuntu_26_kernel_hardening/README.md)
 orchestration applies all three policy roles while retaining separate policy
 values, override namespaces, and managed files.

@@ -60,7 +60,7 @@
 - name: Detect firewall implementation from the operating system
   ansible.builtin.set_fact:
     firewall_detected_backend: >-
-      {{ firewall_backend_by_os_family[ansible_os_family] }}
+      {{ firewall_backend_by_os_family[ansible_facts['os_family']] }}
 
 - name: Apply detected firewall implementation
   ansible.builtin.include_tasks: "{{ firewall_detected_backend }}.yml"

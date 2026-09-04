@@ -1,0 +1,4 @@
+---
+cis_ubuntu_26_core_dump_overrides: {}
+cis_ubuntu_26_core_dump_limits_file: >-
+  /etc/security/limits.d/61-cis-ubuntu-26-core-dumps.conf
