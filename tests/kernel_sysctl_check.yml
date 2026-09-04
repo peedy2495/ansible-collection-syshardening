@@ -1,0 +1,38 @@
+---
+- name: Check kernel sysctl file convergence
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_facts:
+      system: Linux
+      kernel: test
+    kernel_sysctl_file: /tmp/ansible-syshardening-kernel-sysctl-check.conf
+    kernel_apply_runtime: false
+    kernel_sysctl_settings:
+      kernel.randomize_va_space:
+        value: 2
+      net.ipv4.conf.all.accept_redirects:
+        state: absent
+      net.ipv4.ip_forward:
+        value: 0
+  roles:
+    - role: peedy2495.syshardening.kernel
+  post_tasks:
+    - name: Read the rendered test sysctl file
+      ansible.builtin.slurp:
+        src: "{{ kernel_sysctl_file }}"
+      register: kernel_sysctl_test_file
+
+    - name: Verify persistent sysctl rendering
+      ansible.builtin.assert:
+        that:
+          - >-
+            kernel_sysctl_test_file.content | b64decode
+            is search('(?m)^kernel.randomize_va_space = 2$')
+          - >-
+            kernel_sysctl_test_file.content | b64decode
+            is search('(?m)^net.ipv4.ip_forward = 0$')
+          - >-
+            kernel_sysctl_test_file.content | b64decode
+            is not search('(?m)^net.ipv4.conf.all.accept_redirects\\s*=')
