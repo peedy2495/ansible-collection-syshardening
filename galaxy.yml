@@ -19,7 +19,6 @@ issues: https://github.com/peedy2495/ansible-collection-syshardening/issues
 description: Ansible collection for hardening Linux and related IT systems.
 documentation: https://github.com/peedy2495/ansible-collection-syshardening
 dependencies:
-  ansible.posix: ">=1.5.0,<2.0.0"
   community.general: ">=8.0.0,<9.0.0"
 build_ignore:
   - ".git"

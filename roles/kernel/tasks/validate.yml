@@ -20,6 +20,7 @@
   ansible.builtin.assert:
     that:
       - kernel_sysctl_setting.value is mapping
+      - kernel_sysctl_setting.key is match('^[a-zA-Z0-9_.-]+$')
       - >-
         kernel_sysctl_setting.value.keys()
         | difference(['value', 'state'])
@@ -30,9 +31,16 @@
       - >-
         kernel_sysctl_setting.value.state | default('present') == 'absent'
         or kernel_sysctl_setting.value.value is defined
+      - >-
+        kernel_sysctl_setting.value.state | default('present') == 'absent'
+        or '\n' not in (kernel_sysctl_setting.value.value | string)
+      - >-
+        kernel_sysctl_setting.value.state | default('present') == 'absent'
+        or '\r' not in (kernel_sysctl_setting.value.value | string)
     fail_msg: >-
-      Invalid definition for sysctl {{ kernel_sysctl_setting.key }}. Use value
-      and an optional state of present or absent.
+      Invalid definition for sysctl {{ kernel_sysctl_setting.key }}. Use a safe
+      parameter name, a single-line value, and an optional state of present or
+      absent.
   loop: "{{ kernel_sysctl_settings | dict2items }}"
   loop_control:
     loop_var: kernel_sysctl_setting

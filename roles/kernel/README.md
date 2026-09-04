@@ -37,7 +37,14 @@ kernel_required_boot_parameters:
 - `kernel_apply_runtime`: apply values to the running kernel; defaults to
   `true`.
 - `kernel_config_file`: running kernel build configuration; defaults to
-  `/boot/config-{{ ansible_kernel }}`.
+  `/boot/config-{{ ansible_facts['kernel'] }}`.
+
+When `kernel_sysctl_settings` is non-empty, the role owns the complete
+`kernel_sysctl_file`. Entries with `state: absent` are omitted from that file.
+Runtime values are changed individually only when their current value differs;
+removing a persistent entry deliberately does not guess a runtime reset value.
+The implementation uses Ansible built-ins and the system `sysctl` utility and
+therefore does not require the `ansible.posix` collection.
 
 Build-time protections cannot safely be changed after compilation. Boot-time
 protections are verified against the running command line so a policy cannot

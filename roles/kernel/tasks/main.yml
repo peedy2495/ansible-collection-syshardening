@@ -91,18 +91,52 @@
     label: "{{ kernel_boot_parameter.name }}"
   when: kernel_required_boot_parameters | length > 0
 
-- name: Configure persistent and runtime sysctl parameters
-  ansible.posix.sysctl:
-    name: "{{ kernel_sysctl_setting.key }}"
-    value: "{{ kernel_sysctl_setting.value.value | default(omit) }}"
-    state: "{{ kernel_sysctl_setting.value.state | default('present') }}"
-    sysctl_file: "{{ kernel_sysctl_file }}"
-    sysctl_set: >-
-      {{ kernel_apply_runtime and
-         (kernel_sysctl_setting.value.state | default('present'))
-         == 'present' }}
-    reload: false
+- name: Configure persistent sysctl parameters
+  ansible.builtin.template:
+    src: sysctl.conf.j2
+    dest: "{{ kernel_sysctl_file }}"
+    mode: "0644"
+  when: kernel_sysctl_settings | length > 0
+
+- name: Read current runtime sysctl parameters
+  ansible.builtin.command:
+    argv:
+      - sysctl
+      - -n
+      - "{{ kernel_runtime_sysctl_setting.key }}"
+  register: kernel_runtime_sysctl_results
+  changed_when: false
+  failed_when: false
+  when:
+    - kernel_apply_runtime
+    - >-
+      kernel_runtime_sysctl_setting.value.state | default('present')
+      == 'present'
   loop: "{{ kernel_sysctl_settings | dict2items }}"
   loop_control:
-    loop_var: kernel_sysctl_setting
-    label: "{{ kernel_sysctl_setting.key }}"
+    loop_var: kernel_runtime_sysctl_setting
+    label: "{{ kernel_runtime_sysctl_setting.key }}"
+
+- name: Configure changed runtime sysctl parameters
+  ansible.builtin.command:
+    argv:
+      - sysctl
+      - -w
+      - >-
+        {{ kernel_runtime_sysctl_result.kernel_runtime_sysctl_setting.key }}={{
+           kernel_runtime_sysctl_result.kernel_runtime_sysctl_setting.value.value
+        }}
+  changed_when: true
+  when:
+    - not kernel_runtime_sysctl_result.skipped | default(false)
+    - >-
+      kernel_runtime_sysctl_result.rc != 0
+      or kernel_runtime_sysctl_result.stdout.split()
+         != (kernel_runtime_sysctl_result
+             .kernel_runtime_sysctl_setting.value.value | string).split()
+  loop: "{{ kernel_runtime_sysctl_results.results | default([]) }}"
+  loop_control:
+    loop_var: kernel_runtime_sysctl_result
+    label: >-
+      {{ kernel_runtime_sysctl_result
+         .kernel_runtime_sysctl_setting.key | default('skipped') }}

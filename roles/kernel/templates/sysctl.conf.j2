@@ -1,0 +1,6 @@
+# This file is managed by Ansible. Local changes will be overwritten.
+{% for kernel_sysctl_setting in kernel_sysctl_settings | dict2items | sort(attribute='key') %}
+{% if kernel_sysctl_setting.value.state | default('present') == 'present' %}
+{{ kernel_sysctl_setting.key }} = {{ kernel_sysctl_setting.value.value }}
+{% endif %}
+{% endfor %}
